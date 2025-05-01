@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "jose": "^6.0.10",
+    "jsonwebtoken": "^9.0.2",
+    "ldapjs": "^3.0.7",
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
