@@ -1,9 +1,11 @@
 // app/layout.js
 
 import "./globals.css";
-import Header from "./components/Header";
+import "@/app/styles/header.css";
+import "@/app/styles/sidebar.css";
+import Header from "@/app/components/Header";
 import ClientLayout from "@/app/components/ClientLayout";
-import { AuthProvider } from "./components/context/AuthContext";
+import { AuthProvider } from "@/app/components/context/AuthContext";
 
 export const metadata = {
   title: "NICE디앤비 - 상시보안감사",

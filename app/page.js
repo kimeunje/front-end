@@ -2,14 +2,13 @@
 
 "use client";
 
+import "@/app/styles/dashboard.css";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "./components/context/AuthContext";
 
 export default function HomePage() {
   const { user } = useAuth();
-
-  // 보안 상태 데이터 (실제 앱에서는 API에서 가져올 데이터)
   const [securityStats, setSecurityStats] = useState({
     lastAuditDate: "2025-04-28",
     criticalIssues: 2,
@@ -36,7 +35,7 @@ export default function HomePage() {
               <span className="status-value">
                 {Math.round(
                   (securityStats.completedChecks / securityStats.totalChecks) *
-                    100
+                  100
                 )}
                 %
               </span>
@@ -45,11 +44,10 @@ export default function HomePage() {
               <div
                 className="progress-fill"
                 style={{
-                  width: `${
-                    (securityStats.completedChecks /
-                      securityStats.totalChecks) *
+                  width: `${(securityStats.completedChecks /
+                    securityStats.totalChecks) *
                     100
-                  }%`,
+                    }%`,
                 }}
               ></div>
             </div>
@@ -92,7 +90,7 @@ export default function HomePage() {
                   {Math.round(
                     (securityStats.completedChecks /
                       securityStats.totalChecks) *
-                      100
+                    100
                   )}
                 </div>
                 <div className="metric-label">준수율(%)</div>

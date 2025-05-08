@@ -1,0 +1,166 @@
+.header {
+  background-color: var(--primary-color);
+  color: var(--white);
+  padding: 15px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+  flex-shrink: 0;
+  position: sticky;
+  transition: all 0.3s ease;
+  top: 0;
+  width: 100%;
+}
+
+/* 로고 컨테이너 호버 효과 */
+.logo-container {
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.logo-container:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+/* 로고 텍스트 스타일 */
+.logo {
+  font-size: 1.5rem;
+  margin-left: 10px;
+  font-weight: bold;
+  transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-bar {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 15px;
+  width: 250px;
+  display: flex;
+  align-items: center;
+}
+
+.search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  width: 100%;
+  padding-left: 10px;
+}
+
+.search-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 네비게이션 메뉴 */
+.navigation {
+  background-color: #4056b7;
+  padding: 0 40px;
+  z-index: 990;
+  flex-shrink: 0;
+  transition: all 0.5s cubic-bezier(0.215, 0.61, 0.355, 1);
+  height: 49px;
+  overflow: hidden;
+  position: relative;
+  opacity: 1;
+  width: 100%;
+}
+
+.navigation.hidden {
+  height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+/* 네비게이션 링크 애니메이션 */
+.nav-links {
+  display: flex;
+  list-style: none;
+  transition: transform 0.5s cubic-bezier(0.215, 0.61, 0.355, 1),
+    opacity 0.4s ease;
+}
+
+.navigation.hidden .nav-links {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.nav-links li a {
+  color: white;
+  text-decoration: none;
+  padding: 15px 20px;
+  display: block;
+}
+
+/* 사용자 컨트롤 스타일 */
+.user-controls {
+  display: flex;
+  align-items: center;
+}
+
+.loading-indicator {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.user-name {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.user-role {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.logout-button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.login-link {
+  color: white;
+  text-decoration: none;
+  background-color: #007bff;
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.login-link:hover {
+  background-color: #0056b3;
+}

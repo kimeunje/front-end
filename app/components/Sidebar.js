@@ -2,6 +2,7 @@
 
 "use client";
 
+import "@/app/styles/sidebar.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MENU_STRUCTURE } from "../data/security-audit-config";

@@ -1,0 +1,302 @@
+/* 대시보드 페이지 스타일 */
+.dashboard-page {
+  padding: 24px 30px 40px;
+  /* 내부 배경색은 약간 밝게 */
+  background-color: #f5f7fa;
+  min-height: calc(100vh - 114px);
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  border-left: 1px solid #e0e4e9;
+  border-right: 1px solid #e0e4e9;
+}
+
+/* 대시보드 헤더 */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e4e9;
+  width: 100%;
+}
+
+.welcome-message h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.welcome-message p {
+  font-size: 15px;
+  color: #5a6a7e;
+}
+
+/* 상단 보안 준수율 상태 */
+.security-status {
+  text-align: right;
+}
+
+.status-label {
+  font-size: 14px;
+  color: #5a6a7e;
+  margin-bottom: 6px;
+}
+
+.status-value {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.progress-bar {
+  width: 150px;
+  height: 6px;
+  background-color: #e0e4e9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #4caf50;
+  border-radius: 3px;
+}
+
+/* 대시보드 메인 영역 */
+.dashboard-main {
+  margin-bottom: 24px;
+  width: 100%;
+  /* max-width 제거하고 width 100%만 유지 */
+}
+
+/* 카드 공통 스타일 */
+.dashboard-card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+  width: 100%;
+  /* 부모 요소 너비에 맞춤 */
+  border: 1px solid #e0e4e9;
+  /* 선택적으로 테두리 추가 */
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.card-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.date-info {
+  font-size: 14px;
+  color: #7f8c9d;
+}
+
+.card-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f2f5;
+  text-align: right;
+}
+
+/* 보안 상태 요약 */
+.status-summary {
+  width: 100%;
+  /* max-width 제거하고 width 100%만 유지 */
+  margin: 0;
+  /* 마진 제거 */
+}
+
+.status-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 16px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+}
+
+.metric-value {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.metric-value.critical {
+  color: #e74c3c;
+}
+
+.metric-value.success {
+  color: #27ae60;
+}
+
+.metric-value.info {
+  color: #3498db;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: #5a6a7e;
+  font-weight: 500;
+}
+
+/* 로그아웃 상태일 때 표시할 안내 메시지 스타일 */
+.not-logged-info {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  margin-bottom: 24px;
+  text-align: center;
+  width: 100%;
+  /* max-width 제거하고 width 100%만 유지 */
+  border: 1px solid #e0e4e9;
+  /* 테두리 추가 */
+}
+
+.info-icon {
+  margin-bottom: 20px;
+  color: var(--primary-color);
+}
+
+.not-logged-info h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.not-logged-info p {
+  font-size: 15px;
+  color: #5a6a7e;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.login-button-container {
+  margin-top: 20px;
+}
+
+.login-page-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.3s;
+}
+
+.login-page-button:hover {
+  background-color: var(--dark-blue);
+}
+
+/* 링크 스타일 */
+.view-details-link {
+  color: var(--primary-color);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-details-link:hover {
+  text-decoration: underline;
+}
+
+/* 하단 도움말 섹션 */
+.dashboard-footer {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-top: 24px;
+  width: 100%;
+  border: 1px solid #e0e4e9;
+  /* 테두리 추가 */
+}
+
+.help-section {
+  text-align: center;
+}
+
+.help-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.help-section p {
+  font-size: 15px;
+  color: #5a6a7e;
+  line-height: 1.5;
+}
+
+.inline-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .security-status {
+    width: 100%;
+    text-align: left;
+    margin-top: 16px;
+  }
+
+  .progress-bar {
+    width: 100%;
+  }
+
+  .status-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .status-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-item {
+    padding: 12px;
+  }
+
+  .metric-value {
+    font-size: 28px;
+  }
+}
