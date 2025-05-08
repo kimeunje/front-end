@@ -128,17 +128,19 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 하단 안내 섹션 */}
-      <div className="dashboard-footer">
-        <div className="help-section">
-          <h3>도움이 필요하신가요?</h3>
-          <p>
-            보안 감사 관련 문의사항은{" "}
-            <Link href="/security-audit/contact" className="inline-link">
-              IT 보안팀에 문의
-            </Link>
-            하거나 내선 <strong>5678</strong>로 연락해주세요.
-          </p>
+      {/* 하단 안내 섹션 - dashboard-card 클래스 추가하여 동일한 스타일 적용 */}
+      <div className="dashboard-main">
+        <div className="dashboard-card">
+          <div className="help-section">
+            <h3>도움이 필요하신가요?</h3>
+            <p>
+              보안 감사 관련 문의사항은{" "}
+              <Link href="/security-audit/contact" className="inline-link">
+                IT 보안팀에 문의
+              </Link>
+              하거나 내선 <strong>5678</strong>로 연락해주세요.
+            </p>
+          </div>
         </div>
       </div>
     </div>
