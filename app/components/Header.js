@@ -16,7 +16,7 @@ export default function Header() {
   const getPageTitle = () => {
     // 기본 경로 매핑
     const routes = [
-      { path: "/", title: "홈" },
+      { path: "/", title: "상시보안감사" },
       { path: "/security-audit", title: "상시보안감사" },
       { path: "/login", title: "로그인" },
     ];

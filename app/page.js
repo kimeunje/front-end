@@ -6,6 +6,7 @@ import "@/app/styles/dashboard.css";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "./components/context/AuthContext";
+import HomeDownload from "./components/HomeDownload"; // HomeDownload 컴포넌트 임포트
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -15,6 +16,23 @@ export default function HomePage() {
     completedChecks: 16,
     totalChecks: 21,
   });
+  
+  // 초기 설정 완료 여부 상태 추가
+  const [initialSetupDone, setInitialSetupDone] = useState(false);
+  
+  // 컴포넌트 마운트 시 로컬 스토리지에서 초기 설정 완료 여부 확인
+  useEffect(() => {
+    const setupDone = localStorage.getItem('initialSetupDone');
+    if (setupDone === 'true') {
+      setInitialSetupDone(true);
+    }
+  }, []);
+  
+  // 초기 설정 완료 표시 함수
+  const markSetupAsDone = () => {
+    localStorage.setItem('initialSetupDone', 'true');
+    setInitialSetupDone(true);
+  };
 
   return (
     <div className="dashboard-page">
@@ -57,55 +75,92 @@ export default function HomePage() {
 
       {user ? (
         // 로그인 상태 - 보안 상태 요약 표시
-        <div className="dashboard-main">
+        <>
           {/* 보안 상태 요약 카드 */}
-          <div className="dashboard-card status-summary">
-            <div className="card-header">
-              <h2>보안 상태 요약</h2>
-              <span className="date-info">
-                마지막 업데이트: {securityStats.lastAuditDate}
-              </span>
-            </div>
-            <div className="status-metrics">
-              <div className="metric-item">
-                <div className="metric-value critical">
-                  {securityStats.criticalIssues}
-                </div>
-                <div className="metric-label">심각한 문제</div>
+          <div className="dashboard-main">
+            <div className="dashboard-card status-summary">
+              <div className="card-header">
+                <h2>보안 상태 요약</h2>
+                <span className="date-info">
+                  마지막 업데이트: {securityStats.lastAuditDate}
+                </span>
               </div>
-              <div className="metric-item">
-                <div className="metric-value success">
-                  {securityStats.completedChecks}
+              <div className="status-metrics">
+                <div className="metric-item">
+                  <div className="metric-value critical">
+                    {securityStats.criticalIssues}
+                  </div>
+                  <div className="metric-label">심각한 문제</div>
                 </div>
-                <div className="metric-label">완료된 검사</div>
-              </div>
-              <div className="metric-item">
-                <div className="metric-value info">
-                  {securityStats.totalChecks}
+                <div className="metric-item">
+                  <div className="metric-value success">
+                    {securityStats.completedChecks}
+                  </div>
+                  <div className="metric-label">완료된 검사</div>
                 </div>
-                <div className="metric-label">전체 검사 항목</div>
-              </div>
-              <div className="metric-item">
-                <div className="metric-value success">
-                  {Math.round(
-                    (securityStats.completedChecks /
-                      securityStats.totalChecks) *
-                    100
-                  )}
+                <div className="metric-item">
+                  <div className="metric-value info">
+                    {securityStats.totalChecks}
+                  </div>
+                  <div className="metric-label">전체 검사 항목</div>
                 </div>
-                <div className="metric-label">준수율(%)</div>
+                <div className="metric-item">
+                  <div className="metric-value success">
+                    {Math.round(
+                      (securityStats.completedChecks /
+                        securityStats.totalChecks) *
+                      100
+                    )}
+                  </div>
+                  <div className="metric-label">준수율(%)</div>
+                </div>
               </div>
-            </div>
-            <div className="card-footer">
-              <Link
-                href="/security-audit/results"
-                className="view-details-link"
-              >
-                전체 결과 보기
-              </Link>
+              <div className="card-footer">
+                <Link
+                  href="/security-audit/results"
+                  className="view-details-link"
+                >
+                  전체 결과 보기
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
+          
+          {/* 초기 설정 안내 카드 - 초기 설정 완료 여부에 따라 표시 */}
+          {!initialSetupDone && (
+            <div className="dashboard-main">
+              <div className="dashboard-card setup-card">
+                <div className="card-header">
+                  <h2>초기 설정 필요</h2>
+                  <span className="date-info important">
+                    최초 1회 필수
+                  </span>
+                </div>
+                <div className="setup-content simple">
+                  <p>보안 감사를 진행하기 전에 컴퓨터 이름과 작업 그룹(부서명)을 설정해야 합니다.</p>
+                  
+                  <div className="setup-note">
+                    <ul>
+                      <li>컴퓨터 이름은 <strong>사용자 본인의 이름</strong>으로 설정하세요.</li>
+                      <li>작업 그룹은 <strong>소속 부서명</strong>으로 설정하세요.</li>
+                      <li>설정 후 시스템 재부팅이 필요할 수 있습니다.</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="setup-actions simple">
+                    <HomeDownload />
+                    <button 
+                      className="setup-complete-button"
+                      onClick={markSetupAsDone}
+                    >
+                      초기 설정 완료 표시
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         // 로그아웃 상태 - 안내 메시지 표시
         <div className="not-logged-info">
@@ -128,7 +183,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 하단 안내 섹션 - dashboard-card 클래스 추가하여 동일한 스타일 적용 */}
+      {/* 하단 안내 섹션 */}
       <div className="dashboard-main">
         <div className="dashboard-card">
           <div className="help-section">

@@ -107,6 +107,11 @@
   color: #7f8c9d;
 }
 
+.date-info.important {
+  font-weight: 600;
+  color: #e74c3c;
+}
+
 .card-footer {
   margin-top: 24px;
   padding-top: 16px;
@@ -276,6 +281,96 @@
   text-decoration: underline;
 }
 
+/* 초기 설정 카드 스타일 - 단순화 버전 */
+
+.setup-content.simple {
+  margin: 0;
+}
+
+.setup-content.simple p {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--dark-blue);
+  margin-bottom: 16px;
+}
+
+.setup-note {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.setup-note ul {
+  margin: 0;
+  padding-left: 24px;
+}
+
+.setup-note li {
+  margin-bottom: 8px;
+  color: #5a6a7e;
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.setup-note li:last-child {
+  margin-bottom: 0;
+}
+
+.setup-actions.simple {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+  justify-content: flex-start;
+}
+
+/* 다운로드 버튼 스타일 */
+.download-button {
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.download-button:hover {
+  background-color: var(--dark-brown);
+}
+
+.primary-download:before {
+  content: "⬇️";
+  font-size: 16px;
+}
+
+.download-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.setup-complete-button {
+  background-color: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.setup-complete-button:hover {
+  background-color: var(--subtle-blue);
+}
+
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .dashboard-header {
@@ -295,6 +390,17 @@
 
   .status-metrics {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .setup-actions.simple {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .download-button, 
+  .setup-complete-button {
+    width: 100%;
+    justify-content: center;
   }
 }
 
