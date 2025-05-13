@@ -1,4 +1,4 @@
-// app/api/security-audit/checklist-items/route.js
+// app/api/security-audit/stats/route.js
 
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
@@ -22,7 +22,7 @@ export async function GET(request) {
 
     // 백엔드 API에 요청 보내기 (사용자 ID 포함)
     const response = await fetch(
-      `http://localhost:5000/api/security-audit/checklist-items?user_id=${userId}`,
+      `http://localhost:5000/api/security-audit/stats?user_id=${userId}`,
       {
         method: "GET",
         headers: {
@@ -38,7 +38,7 @@ export async function GET(request) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching checklist items:", error);
+    console.error("Error fetching security stats:", error);
 
     // 토큰 관련 에러 처리
     if (error.name === "JsonWebTokenError") {
@@ -56,7 +56,7 @@ export async function GET(request) {
     }
 
     return NextResponse.json(
-      { error: "점검 항목 목록을 가져오는 중 오류가 발생했습니다." },
+      { error: "보안 통계 데이터를 가져오는 중 오류가 발생했습니다." },
       { status: 500 }
     );
   }

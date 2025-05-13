@@ -10,27 +10,74 @@ import HomeDownload from "./components/HomeDownload"; // HomeDownload 컴포넌�
 
 export default function HomePage() {
   const { user } = useAuth();
+  // 보안 통계 상태 초기화
   const [securityStats, setSecurityStats] = useState({
-    lastAuditDate: "2025-04-28",
-    criticalIssues: 2,
-    completedChecks: 16,
-    totalChecks: 21,
+    lastAuditDate: "",
+    criticalIssues: 0,
+    completedChecks: 0,
+    totalChecks: 0,
   });
-  
+
+  // 데이터 로딩 상태
+  const [loading, setLoading] = useState(true);
+
+  // 에러 상태
+  const [error, setError] = useState(null);
+
   // 초기 설정 완료 여부 상태 추가
   const [initialSetupDone, setInitialSetupDone] = useState(false);
-  
+
   // 컴포넌트 마운트 시 로컬 스토리지에서 초기 설정 완료 여부 확인
   useEffect(() => {
-    const setupDone = localStorage.getItem('initialSetupDone');
-    if (setupDone === 'true') {
+    const setupDone = localStorage.getItem("initialSetupDone");
+    if (setupDone === "true") {
       setInitialSetupDone(true);
     }
   }, []);
-  
+
+  // API에서 보안 통계 데이터 가져오기
+  useEffect(() => {
+    // 사용자가 로그인한 경우에만 데이터 가져오기
+    if (user) {
+      const fetchSecurityStats = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch("/api/security-audit/stats");
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          setSecurityStats({
+            lastAuditDate: data.lastAuditDate || "",
+            criticalIssues: data.criticalIssues || 0,
+            completedChecks: data.completedChecks || 0,
+            totalChecks: data.totalChecks || 0,
+          });
+          setError(null);
+        } catch (err) {
+          console.error("Failed to fetch security stats:", err);
+          setError("보안 통계 데이터를 불러오는 중 오류가 발생했습니다.");
+          // 오류 발생 시 대체 데이터 사용 (선택적)
+          setSecurityStats({
+            lastAuditDate: "데이터 없음",
+            criticalIssues: 0,
+            completedChecks: 0,
+            totalChecks: 0,
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchSecurityStats();
+    }
+  }, [user]);
+
   // 초기 설정 완료 표시 함수
   const markSetupAsDone = () => {
-    localStorage.setItem('initialSetupDone', 'true');
+    localStorage.setItem("initialSetupDone", "true");
     setInitialSetupDone(true);
   };
 
@@ -46,14 +93,14 @@ export default function HomePage() {
               : "보안 감사 대시보드에 오신 것을 환영합니다."}
           </p>
         </div>
-        {user && (
+        {user && securityStats.totalChecks > 0 && (
           <div className="security-status">
             <div className="status-label">
               보안 준수율:{" "}
               <span className="status-value">
                 {Math.round(
                   (securityStats.completedChecks / securityStats.totalChecks) *
-                  100
+                    100
                 )}
                 %
               </span>
@@ -62,10 +109,11 @@ export default function HomePage() {
               <div
                 className="progress-fill"
                 style={{
-                  width: `${(securityStats.completedChecks /
-                    securityStats.totalChecks) *
+                  width: `${
+                    (securityStats.completedChecks /
+                      securityStats.totalChecks) *
                     100
-                    }%`,
+                  }%`,
                 }}
               ></div>
             </div>
@@ -78,78 +126,131 @@ export default function HomePage() {
         <>
           {/* 보안 상태 요약 카드 */}
           <div className="dashboard-main">
-            <div className="dashboard-card status-summary">
-              <div className="card-header">
-                <h2>보안 상태 요약</h2>
-                <span className="date-info">
-                  마지막 업데이트: {securityStats.lastAuditDate}
-                </span>
-              </div>
-              <div className="status-metrics">
-                <div className="metric-item">
-                  <div className="metric-value critical">
-                    {securityStats.criticalIssues}
-                  </div>
-                  <div className="metric-label">심각한 문제</div>
+            {loading ? (
+              // 로딩 중 표시
+              <div className="dashboard-card status-summary">
+                <div className="card-header">
+                  <h2>보안 상태 요약</h2>
+                  <span className="date-info">데이터 로딩 중...</span>
                 </div>
-                <div className="metric-item">
-                  <div className="metric-value success">
-                    {securityStats.completedChecks}
-                  </div>
-                  <div className="metric-label">완료된 검사</div>
-                </div>
-                <div className="metric-item">
-                  <div className="metric-value info">
-                    {securityStats.totalChecks}
-                  </div>
-                  <div className="metric-label">전체 검사 항목</div>
-                </div>
-                <div className="metric-item">
-                  <div className="metric-value success">
-                    {Math.round(
-                      (securityStats.completedChecks /
-                        securityStats.totalChecks) *
-                      100
-                    )}
-                  </div>
-                  <div className="metric-label">준수율(%)</div>
-                </div>
-              </div>
-              <div className="card-footer">
-                <Link
-                  href="/security-audit/results"
-                  className="view-details-link"
+                <div
+                  className="loading-indicator"
+                  style={{ padding: "20px", textAlign: "center" }}
                 >
-                  전체 결과 보기
-                </Link>
+                  <p>보안 데이터를 불러오는 중입니다...</p>
+                </div>
               </div>
-            </div>
+            ) : error ? (
+              // 에러 표시
+              <div className="dashboard-card status-summary">
+                <div className="card-header">
+                  <h2>보안 상태 요약</h2>
+                  <span className="date-info error">오류 발생</span>
+                </div>
+                <div
+                  className="error-message"
+                  style={{ padding: "20px", color: "#f44336" }}
+                >
+                  <p>{error}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    style={{
+                      padding: "8px 16px",
+                      marginTop: "10px",
+                      backgroundColor: "#f44336",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    다시 시도
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // 데이터 표시
+              <div className="dashboard-card status-summary">
+                <div className="card-header">
+                  <h2>보안 상태 요약</h2>
+                  <span className="date-info">
+                    마지막 업데이트: {securityStats.lastAuditDate}
+                  </span>
+                </div>
+                <div className="status-metrics">
+                  <div className="metric-item">
+                    <div className="metric-value critical">
+                      {securityStats.criticalIssues}
+                    </div>
+                    <div className="metric-label">심각한 문제</div>
+                  </div>
+                  <div className="metric-item">
+                    <div className="metric-value success">
+                      {securityStats.completedChecks}
+                    </div>
+                    <div className="metric-label">완료된 검사</div>
+                  </div>
+                  <div className="metric-item">
+                    <div className="metric-value info">
+                      {securityStats.totalChecks}
+                    </div>
+                    <div className="metric-label">전체 검사 항목</div>
+                  </div>
+                  <div className="metric-item">
+                    <div className="metric-value success">
+                      {securityStats.totalChecks > 0
+                        ? Math.round(
+                            (securityStats.completedChecks /
+                              securityStats.totalChecks) *
+                              100
+                          )
+                        : 0}
+                    </div>
+                    <div className="metric-label">준수율(%)</div>
+                  </div>
+                </div>
+                <div className="card-footer">
+                  <Link
+                    href="/security-audit/results"
+                    className="view-details-link"
+                  >
+                    전체 결과 보기
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
-          
+
           {/* 초기 설정 안내 카드 - 초기 설정 완료 여부에 따라 표시 */}
           {!initialSetupDone && (
             <div className="dashboard-main">
               <div className="dashboard-card setup-card">
                 <div className="card-header">
                   <h2>초기 설정 필요</h2>
-                  <span className="date-info important">
-                    최초 1회 필수
-                  </span>
+                  <span className="date-info important">최초 1회 필수</span>
                 </div>
                 <div className="setup-content simple">
-                  <p>보안 감사를 진행하기 전에 컴퓨터 이름과 작업 그룹(부서명)을 설정해야 합니다.</p>
-                  
+                  <p>
+                    보안 감사를 진행하기 전에 컴퓨터 이름과 작업 그룹(부서명)을
+                    설정해야 합니다.
+                  </p>
+
                   <div className="setup-note">
                     <ul>
-                      <li>컴퓨터 이름은 <strong>사용자 본인의 이름</strong>으로 설정하세요.</li>
-                      <li>작업 그룹은 <strong>소속 부서명</strong>으로 설정하세요.</li>
+                      <li>
+                        컴퓨터 이름은 <strong>사용자 본인의 이름</strong>으로
+                        설정하세요.
+                      </li>
+                      <li>
+                        작업 그룹은 <strong>소속 부서명</strong>으로 설정하세요.
+                      </li>
                       <li>설정 후 시스템 재부팅이 필요할 수 있습니다.</li>
                     </ul>
                   </div>
-                  
+
                   <div className="setup-actions simple">
                     <HomeDownload />
-                    <button 
+                    <button
                       className="setup-complete-button"
                       onClick={markSetupAsDone}
                     >
