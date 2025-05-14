@@ -19,45 +19,55 @@ export const MENU_STRUCTURE = [
     path: "/security-audit/solutions",
     subItems: [
       {
+        id: "screensaver",
+        title: "화면보호기 설정 점검",
+        path: "/security-audit/solutions/screensaver",
+      },
+      {
+        id: "shared-folder",
+        title: "공유폴더 보안 점검",
+        path: "/security-audit/solutions/shared-folder",
+      },
+      {
         id: "printer",
         title: "불분명 프린터 확인",
         path: "/security-audit/solutions/printer",
       },
-      {
-        id: "endpoint",
-        title: "엔드포인트 솔루션 관리",
-        path: "/security-audit/solutions/endpoint",
-      },
+      // {
+      //   id: "endpoint",
+      //   title: "엔드포인트 솔루션 관리",
+      //   path: "/security-audit/solutions/endpoint",
+      // },
       {
         id: "password",
         title: "패스워드 정책 설정",
         path: "/security-audit/solutions/password",
       },
-      {
-        id: "software",
-        title: "소프트웨어 설치 및 제거",
-        path: "/security-audit/solutions/software",
-      },
+      // {
+      //   id: "software",
+      //   title: "소프트웨어 설치 및 제거",
+      //   path: "/security-audit/solutions/software",
+      // },
       {
         id: "firewall",
         title: "방화벽 설정",
         path: "/security-audit/solutions/firewall",
       },
-      {
-        id: "encryption",
-        title: "고유식별번호 암호화",
-        path: "/security-audit/solutions/encryption",
-      },
-      {
-        id: "network",
-        title: "네트워크 설정",
-        path: "/security-audit/solutions/network",
-      },
-      {
-        id: "usb",
-        title: "USB 및 외부 장치 사용",
-        path: "/security-audit/solutions/usb",
-      },
+      // {
+      //   id: "encryption",
+      //   title: "고유식별번호 암호화",
+      //   path: "/security-audit/solutions/encryption",
+      // },
+      // {
+      //   id: "network",
+      //   title: "네트워크 설정",
+      //   path: "/security-audit/solutions/network",
+      // },
+      // {
+      //   id: "usb",
+      //   title: "USB 및 외부 장치 사용",
+      //   path: "/security-audit/solutions/usb",
+      // },
       {
         id: "remote",
         title: "원격 데스크톱 설정",
