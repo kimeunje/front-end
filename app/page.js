@@ -42,7 +42,10 @@ export default function HomePage() {
       const fetchSecurityStats = async () => {
         setLoading(true);
         try {
-          const response = await fetch("/api/security-audit/stats");
+          const response = await fetch(
+            "http://10.106.25.129:5001/api/security-audit/stats",
+            { credentials: "include" } // 쿠키 포함
+          );
 
           if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
