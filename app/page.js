@@ -43,7 +43,7 @@ export default function HomePage() {
         setLoading(true);
         try {
           const response = await fetch(
-            "http://10.106.25.129:5001/api/security-audit/stats",
+            "http://localhost:5001/api/security-audit/stats",
             { credentials: "include" } // 쿠키 포함
           );
 
