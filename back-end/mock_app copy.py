@@ -733,12 +733,12 @@ VALIDATION_STRATEGIES: Dict[str, ValidationStrategy] = {
 def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
 
+
 @app.route("/api/validate_check", methods=["POST"])
 def validate_check():
     """
     항목 검증을 배치 스크립트에서 바로 실행할 수 있는 API 엔드포인트
     클라이언트로부터 받은 item_type과 actual_value를 검증하고 결과를 반환
-    같은 날짜에 동일 사용자/항목 조합이 있으면 업데이트, 없으면 새로 추가
     """
     data = request.json
     print(data)
@@ -810,44 +810,14 @@ def validate_check():
 
         print(user_id, item_id, actual_value_json, passed, notes)
 
-        # 오늘 날짜의 시작 시간 (00:00:00)을 구합니다
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        
-        # 해당 사용자와 항목에 대해 오늘 날짜의 로그가 있는지 확인
+        # 로그 저장 또는 업데이트
         cur.execute(
             """
-            SELECT log_id 
-            FROM audit_log 
-            WHERE user_id = %s AND item_id = %s AND DATE(checked_at) = DATE(NOW())
-            ORDER BY checked_at DESC
-            LIMIT 1
+            INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (user_id, item_id)
+            (user_id, item_id, actual_value_json, passed, notes),
         )
-        
-        existing_log = cur.fetchone()
-        
-        if existing_log:
-            # 이미 오늘 검사한 기록이 있으면 UPDATE
-            cur.execute(
-                """
-                UPDATE audit_log 
-                SET actual_value = %s, passed = %s, notes = %s, checked_at = NOW()
-                WHERE log_id = %s
-                """,
-                (actual_value_json, passed, notes, existing_log['log_id'])
-            )
-            log_action = "updated"
-        else:
-            # 오늘 처음 검사하는 경우 INSERT
-            cur.execute(
-                """
-                INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (user_id, item_id, actual_value_json, passed, notes)
-            )
-            log_action = "created"
 
         conn.commit()
         return jsonify(
@@ -856,7 +826,6 @@ def validate_check():
                 "item_id": item_id,
                 "item_name": item_name,
                 "passed": passed,
-                "log_action": log_action
             }
         )
 
