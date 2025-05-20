@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
         console.log("사용자 인증 상태 확인 중...");
 
         // 서버에서 사용자 정보 가져오기
-        const response = await fetch(`http://localhost:5001/api/auth/me`, {
+        const response = await fetch(`/api/auth/me`, {
           credentials: "include", // 쿠키 포함
         });
 
@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
     try {
       // 자격증명 확인
       const credentialResponse = await fetch(
-        `http://localhost:5001/api/auth/check-credentials`,
+        `/api/auth/check-credentials`,
         {
           method: "POST",
           headers: {
@@ -97,7 +97,7 @@ export function AuthProvider({ children }) {
   const requestVerificationCode = async (email) => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/auth/email-verification`,
+        `/api/auth/email-verification`,
         {
           method: "POST",
           headers: {
@@ -118,7 +118,7 @@ export function AuthProvider({ children }) {
   const verifyAndLogin = async (email, code, username, password) => {
     try {
       const response = await fetch(
-        `http://localhost:5001/api/auth/verify-and-login`,
+        `/api/auth/verify-and-login`,
         {
           method: "POST",
           headers: {
@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
 
       // 사용자 정보 가져오기
       const userResponse = await fetch(
-        `http://localhost:5001/api/auth/me`,
+        `/api/auth/me`,
         {
           credentials: "include",
         }
@@ -163,7 +163,7 @@ export function AuthProvider({ children }) {
   const logout = async (redirect = true) => {
     try {
       // 서버에 로그아웃 요청
-      await fetch(`http://localhost:5001/api/auth/logout`, {
+      await fetch(`/api/auth/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -189,7 +189,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/auth/me`, {
+      const response = await fetch(`/api/auth/me`, {
         credentials: "include",
       });
 

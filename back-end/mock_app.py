@@ -35,7 +35,6 @@ logging.basicConfig(
     ],
 )
 
-
 # 사용자 환경 설정
 JWT_SECRET = "your-secret-key"
 TOKEN_EXPIRATION = 28800  # 8시간 (초 단위)
@@ -57,7 +56,7 @@ TEST_USERS = {
         "email": "user1@example.com",
         "dept": "개발팀",
     },
-    "tester": {
+    "kimeunje": {
         "password": "test123",
         "name": "테스트계정",
         "email": "test@example.com",
@@ -165,6 +164,7 @@ def verify_and_login():
     # 다시 LDAP 인증 (보안 강화)
     result = authenticate_ldap(username, password)
 
+    print(result)
     if not result["success"]:
         return jsonify(result), 401
 
@@ -181,6 +181,8 @@ def verify_and_login():
     # 인증 코드 삭제 (사용 완료)
     if email in verification_codes:
         del verification_codes[email]
+
+    print(token)
 
     # 토큰 반환
     response = jsonify({"success": True, "message": "로그인 성공"})
@@ -201,7 +203,7 @@ def verify_and_login():
 @app.route("/api/auth/me", methods=["GET"])
 def get_user_info():
     token = request.cookies.get("auth_token")
-
+    print(token)
     if not token:
         return jsonify({"message": "인증 토큰이 필요합니다."}), 401
 
@@ -344,6 +346,24 @@ MOCK_SECURITY_DATA = {
 
 
 # API 엔드포인트: 사용자별 보안 통계 데이터 조회 (모의)
+# @app.route("/api/security-audit/stats", methods=["GET"])
+# def get_security_stats():
+#     token = request.cookies.get("auth_token")
+
+#     if not token:
+#         return jsonify({"message": "인증 토큰이 필요합니다."}), 401
+
+#     try:
+#         # 토큰 검증 (간단히)
+#         jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+
+#         # 모의 데이터 반환
+#         return jsonify(MOCK_SECURITY_DATA["stats"])
+
+
+#     except Exception as e:
+#         print(f"Error in get_security_stats: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
 @app.route("/api/security-audit/stats", methods=["GET"])
 def get_security_stats():
     token = request.cookies.get("auth_token")
@@ -352,11 +372,91 @@ def get_security_stats():
         return jsonify({"message": "인증 토큰이 필요합니다."}), 401
 
     try:
-        # 토큰 검증 (간단히)
-        jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        # 토큰 검증
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
 
-        # 모의 데이터 반환
-        return jsonify(MOCK_SECURITY_DATA["stats"])
+        # 토큰에서 사용자 가져오기
+        user_name = payload.get("username")
+        print(user_name)
+        if not user_name:
+            return jsonify({"message": "사용자 정보를 찾을 수 없습니다."}), 401
+
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+
+            # 사용자 ID 가져오기
+            cursor.execute(
+                """
+                SELECT uid
+                FROM users
+                WHERE user_id = %s
+                """,
+                (user_name,),
+            )
+
+            user = cursor.fetchone()
+            user_id = user["uid"]
+
+            # 총 체크리스트 항목 수 조회
+            cursor.execute(
+                """
+                SELECT COUNT(*) as total_items
+                FROM checklist_items
+                """
+            )
+            total_items_result = cursor.fetchone()
+            total_checks = total_items_result["total_items"]
+
+            # 해당 사용자의 가장 최근 감사 날짜 조회
+            cursor.execute(
+                """
+                SELECT MAX(checked_at) as last_audit_date
+                FROM audit_log
+                WHERE user_id = %s
+                """,
+                (user_id,),
+            )
+            last_audit_result = cursor.fetchone()
+            last_audit_date = last_audit_result["last_audit_date"]
+
+            # 해당 사용자가 통과한 검사 항목 수 조회
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT item_id) as completed_checks
+                FROM audit_log
+                WHERE passed = 1 AND user_id = %s
+                """,
+                (user_id,),
+            )
+            passed_checks_result = cursor.fetchone()
+            completed_checks = passed_checks_result["completed_checks"]
+
+            # 해당 사용자의 심각한 문제(통과하지 못한 항목) 수 조회
+            cursor.execute(
+                """
+                SELECT COUNT(DISTINCT item_id) as critical_issues
+                FROM audit_log
+                WHERE passed = 0 AND user_id = %s
+                """,
+                (user_id,),
+            )
+            failed_checks_result = cursor.fetchone()
+            critical_issues = failed_checks_result["critical_issues"]
+
+        conn.close()
+
+        # 날짜 포맷 변환
+        formatted_date = last_audit_date.strftime("%Y-%m-%d") if last_audit_date else ""
+
+        # 응답 데이터 구성
+        stats = {
+            "lastAuditDate": formatted_date,
+            "totalChecks": total_checks,
+            "completedChecks": completed_checks,
+            "criticalIssues": critical_issues,
+        }
+
+        return jsonify(stats)
 
     except Exception as e:
         print(f"Error in get_security_stats: {str(e)}")
@@ -407,16 +507,15 @@ def get_audit_logs():
             # 사용자 ID 가져오기
             cursor.execute(
                 """
-                SELECT user_id
+                SELECT uid
                 FROM users
-                WHERE username = %s
+                WHERE user_id = %s
                 """,
                 (user_name,),
             )
 
             user = cursor.fetchone()
-            print(user)
-            user_id = user["user_id"]
+            user_id = user["uid"]
 
             # 특정 사용자의 로그만 날짜 역순으로 가져오기
             cursor.execute(
@@ -699,6 +798,7 @@ class OS_패치_확인(ValidationStrategy):
 
 
 class 방화벽_활성화_확인(ValidationStrategy):
+
     def validate(self, actual_value: dict) -> bool:
         # 필수 방화벽 프로필 목록
         required_profiles = ["Domain", "Private", "Public"]
@@ -710,6 +810,57 @@ class 방화벽_활성화_확인(ValidationStrategy):
                 return False
 
         return True
+
+
+class 백신_상태_확인(ValidationStrategy):
+
+    def validate(self, actual_value: dict) -> bool:
+        # 백신 정보 직접 확인
+        display_name = actual_value.get("DisplayName", "")
+        up_to_date = actual_value.get("UpToDate", 0)
+        real_time_protection = actual_value.get("RealTimeProtection", 0)
+        
+        # 백신이 설치되지 않은 경우
+        if "미설치" in display_name:
+            return False
+            
+        # 알약 관련 제품인지 확인 (알약, AhnLab, V3 등)
+        is_ahnlab_product = any(
+            name in display_name
+            for name in ["알약", "AhnLab", "V3"]
+        )
+        
+        # 알약 제품이 아니라면 검증 실패
+        if not is_ahnlab_product:
+            return False
+            
+        # 실시간 보호 및 업데이트 상태 확인
+        # 참고: 변경된 데이터에서는 0/1 또는 False/True로 값이 제공됨
+        if not real_time_protection:
+            return False
+            
+        if not up_to_date:
+            return False
+            
+        # 모든 조건이 통과되었으므로 검증 성공
+        return True
+
+
+class 이동매체_자동실행_제한(ValidationStrategy):
+
+    def validate(self, actual_value: dict) -> bool:
+        # NoDriveTypeAutoRun 값이 255 또는 95인 경우만 통과
+        value = actual_value.get("Value")
+
+        # 값이 문자열로 전달될 경우 정수로 변환 시도
+        if isinstance(value, str) and value.isdigit():
+            value = int(value)
+
+        # 값이 정수인지 확인하고 검증
+        if isinstance(value, int):
+            return value >= 255 or value == 95
+
+        return False
 
 
 VALIDATION_STRATEGIES: Dict[str, ValidationStrategy] = {
@@ -726,12 +877,15 @@ VALIDATION_STRATEGIES: Dict[str, ValidationStrategy] = {
     "원격데스크톱 제한": 원격데스크톱_제한(),
     "소프트웨어 패치 관리": DefaultValidation(),
     "불특정 소프트웨어 확인": 불특정_소프트웨어_확인(),
+    "이동매체 자동실행 제한": 이동매체_자동실행_제한(),
     "OS 패치 확인": OS_패치_확인(),
+    "백신 상태 확인": 백신_상태_확인(),
 }
 
 
 def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
+
 
 @app.route("/api/validate_check", methods=["POST"])
 def validate_check():
@@ -812,7 +966,7 @@ def validate_check():
 
         # 오늘 날짜의 시작 시간 (00:00:00)을 구합니다
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        
+
         # 해당 사용자와 항목에 대해 오늘 날짜의 로그가 있는지 확인
         cur.execute(
             """
@@ -822,11 +976,11 @@ def validate_check():
             ORDER BY checked_at DESC
             LIMIT 1
             """,
-            (user_id, item_id)
+            (user_id, item_id),
         )
-        
+
         existing_log = cur.fetchone()
-        
+
         if existing_log:
             # 이미 오늘 검사한 기록이 있으면 UPDATE
             cur.execute(
@@ -835,7 +989,7 @@ def validate_check():
                 SET actual_value = %s, passed = %s, notes = %s, checked_at = NOW()
                 WHERE log_id = %s
                 """,
-                (actual_value_json, passed, notes, existing_log['log_id'])
+                (actual_value_json, passed, notes, existing_log["log_id"]),
             )
             log_action = "updated"
         else:
@@ -845,7 +999,7 @@ def validate_check():
                 INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
                 VALUES (%s, %s, %s, %s, %s)
                 """,
-                (user_id, item_id, actual_value_json, passed, notes)
+                (user_id, item_id, actual_value_json, passed, notes),
             )
             log_action = "created"
 
@@ -856,7 +1010,7 @@ def validate_check():
                 "item_id": item_id,
                 "item_name": item_name,
                 "passed": passed,
-                "log_action": log_action
+                "log_action": log_action,
             }
         )
 
@@ -887,7 +1041,9 @@ def generate_notes(item_name, passed, actual_value):
             "방화벽 활성화 확인": "모든 방화벽 프로필(Domain, Private, Public)이 정상적으로 활성화되어 있습니다.",
             "공유폴더 확인": "불필요한 공유 폴더가 없습니다.",
             "불분명 프린터 확인": "인가되지 않은 프린터가 없습니다.",
+            "": "알약 백신이 정상적으로 설치되어 있으며, 실시간 보호 및 최신 업데이트가 적용되어 있습니다.",
             "원격데스크톱 제한": "원격 데스크톱이 적절하게 제한되어 있습니다.",
+            "이동매체 자동실행 제한": "이동식 미디어 자동실행이 올바르게 제한되어 있습니다.",
             "불특정 소프트웨어 확인": "모든 소프트웨어가 최신 버전으로 업데이트되어 있습니다.",
             "OS 패치 확인": "운영체제가 최신 상태로 업데이트되어 있습니다.",
         }
@@ -917,7 +1073,9 @@ def generate_notes(item_name, passed, actual_value):
             "방화벽 활성화 확인": "일부 방화벽 프로필이 비활성화되어 있습니다. 모든 프로필(Domain, Private, Public)을 활성화해주세요.",
             "불분명 프린터 확인": "인가되지 않은 프린터가 있습니다. 불필요한 프린터를 제거해주세요.",
             "원격데스크톱 제한": "원격 데스크톱이 활성화되어 있습니다. 보안을 위해 비활성화해주세요.",
+            "이동매체 자동실행 제한": f"이동식 미디어 자동실행이 제한되어 있지 않습니다. 현재 값: {actual_value.get('Value', '없음')}. 레지스트리 설정(NoDriveTypeAutoRun)을 255 또는 95로 설정하여 자동실행을 제한해주세요.",
             "불특정 소프트웨어 확인": "일부 소프트웨어가 최신 버전이 아닙니다. 소프트웨어를 업데이트해주세요.",
+            "백신 상태 확인": "알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.",
             "OS 패치 확인": f"운영체제({actual_value.get('windowsVersion')}, 빌드:{actual_value.get('windowsBuildNumber')})가 최신 상태가 아닙니다. 윈도우 업데이트를 실행하여 최신 상태로 유지해주세요.",
         }
         return notes_failure.get(
@@ -937,7 +1095,7 @@ def authenticate():
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT user_id
+            SELECT uid
             FROM users
             WHERE username = %s
             """,
@@ -945,7 +1103,7 @@ def authenticate():
         )
         user = cur.fetchone()
         if user:
-            return jsonify({"user_id": user["user_id"]})
+            return jsonify({"user_id": user["uid"]})
         else:
             return jsonify(
                 {
@@ -1003,7 +1161,7 @@ if __name__ == "__main__":
         )
     print("============================================================")
     print("* 모든 인증 코드는 '123456'으로 설정되어 있습니다.")
-    print("* 서버 주소: http://localhost:5001")
+    print("* 서버 주소: http://localhost:5000")
     print("============================================================")
 
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -23,7 +23,7 @@ if '%errorlevel%' NEQ '0' (
 
 
 :: === API 서버 설정 ===
-set SERVER_URL="http://localhost:5001"
+set SERVER_URL="http://localhost:5000"
 
 :: === 유틸리티 함수 ===
 set "WHITE=PowerShell -Command Write-Host -ForegroundColor White"
@@ -43,13 +43,15 @@ secedit /export /cfg %LOG_DIR%\security.inf /areas SECURITYPOLICY >nul 2>&1
 
 ECHO 2025년 상반기 정보보안감사에 따른 각 점검 항목을 검사하는 스크립트입니다.
 
-set USER="hamtori"
+set USER="김은제"
 
 :: === 메인 실행 ===
 :main
     @REM 검증 로직 실행
     call :authenticate_user "사용자 검증" "INFO"
-    call :antivirus_check "백신 상태 검사 시작" "INFO"
+    call :autorun_check "자동 실행 검사" "INFO"
+    call :ahnlab_antivirus_check "안랩 검증" "INFO"
+    @REM call :antivirus_check "백신 상태 검사 시작" "INFO"
     call :firewall_check "방화벽 설정 검사" "INFO"
     call :screen_saver_check "화면 보호기 검사" "INFO"
     call :user_name_check "윈도우 계정 이름 검사" "INFO"
@@ -657,6 +659,58 @@ call :log_message "방화벽 설정 검사 시작" "INFO"
     exit /b
 
 
+
+:autorun_check
+    call :log_message "이동매체 자동실행 제한 검사 시작" "INFO"
+
+    powershell -Command ^
+        Write-Host '잠시만 기다려주세요...'; ^
+        $WarningPreference='SilentlyContinue'; ^
+        $autorunInfo = @{ ^
+            user_id = (Get-ItemProperty -Path 'HKCU:\Environment').nicednb_audit_user_id; ^
+            item_type = '이동매체 자동실행 제한'; ^
+            actual_value = @{}; ^
+        }; ^
+        ^
+        $autorunPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer'; ^
+        $nodrivetype = $null; ^
+        ^
+        if (Test-Path $autorunPath) { ^
+            $nodrivetype = Get-ItemProperty -Path $autorunPath -Name 'NoDriveTypeAutoRun' -ErrorAction SilentlyContinue; ^
+        } ^
+        ^
+        if ($nodrivetype -ne $null) { ^
+            $value = $nodrivetype.NoDriveTypeAutoRun; ^
+            $autorunInfo.actual_value['Setting'] = 'NoDriveTypeAutoRun'; ^
+            $autorunInfo.actual_value['Value'] = $value; ^
+            $autorunInfo.actual_value['Status'] = if ($value -ge 255 -or $value -eq 95) { '제한됨' } else { '제한되지 않음' }; ^
+        } else { ^
+            $autorunInfo.actual_value['Setting'] = 'NoDriveTypeAutoRun'; ^
+            $autorunInfo.actual_value['Value'] = 'NotFound'; ^
+            $autorunInfo.actual_value['Status'] = '제한되지 않음'; ^
+        } ^
+        ^
+        $body = ConvertTo-Json $autorunInfo; ^
+        try { ^
+        [void](Invoke-RestMethod ^
+            -Method Post ^
+            -Uri '%SERVER_URL%/api/validate_check' ^
+            -Body $body ^
+            -ContentType 'application/json; charset=utf-8') ^
+        } catch { ^
+            %YELLOW% '[전송 실패] [%MESSAGE%] API 서버 연결 오류'; ^
+            exit 1; ^
+        };
+
+    if %ERRORLEVEL% EQU 0 (
+        call :log_message "이동매체 자동실행 제한 검사 성공" "PASS"
+    ) else (
+        call :log_message "이동매체 자동실행 제한 검사 실패" "FAIL"
+    )
+
+    exit /b
+
+
 :: === 2. 백신 상태 점검 === (완료)
 :antivirus_check
     call :log_message "백신 상태 검사 시작" "INFO"
@@ -701,6 +755,80 @@ call :log_message "방화벽 설정 검사 시작" "INFO"
 
     exit /b
 
+
+:: === 2. 알약 백신 상태 점검 === (완료)
+:ahnlab_antivirus_check
+    rem call :log_message "알약 백신 상태 검사 시작" "INFO"
+
+    powershell -Command ^
+        Write-Host '알약 백신 상태 확인 중...'; ^
+        ^
+        $thirdPartyAV = Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct; ^
+        ^
+        function Get-AVStatus($productState) { ^
+            $hexString = [Convert]::ToString($productState, 16).PadLeft(6, '0'); ^
+            ^
+            $realTimeProtection = 0; ^
+            $rtpBit = $hexString.Substring(2, 2); ^
+            ^
+            if ($rtpBit -eq '10') { $realTimeProtection = 1 }; ^
+            ^
+            $upToDate = 0; ^
+            $updateBit = $hexString.Substring(4, 2); ^
+            ^
+            if ($updateBit -eq '00') { $upToDate = 1 }; ^
+            ^
+            return @{ ^
+                RealTimeProtection = $realTimeProtection; ^
+                UpToDate = $upToDate; ^
+            }; ^
+        }; ^
+        ^
+        $avFound = $false; ^
+        $avStatus = @{ ^
+            DisplayName = '백신 미설치'; ^
+            RealTimeProtection = 0; ^
+            UpToDate = 0; ^
+        }; ^
+        ^
+        foreach ($av in $thirdPartyAV) { ^
+            if ($av.DisplayName -like '*알약*' -or $av.DisplayName -like '*AhnLab*' -or $av.DisplayName -like '*V3*') { ^
+                $status = Get-AVStatus $av.ProductState; ^
+                $avStatus = @{ ^
+                    DisplayName = $av.DisplayName; ^
+                    RealTimeProtection = $status.RealTimeProtection; ^
+                    UpToDate = $status.UpToDate; ^
+                }; ^
+                $avFound = $true; ^
+                break; ^
+            }; ^
+        }; ^
+        ^
+        $packages = @{ ^
+            user_id = (Get-ItemProperty -Path 'HKCU:\Environment').nicednb_audit_user_id; ^
+            item_type = '백신 상태 확인'; ^
+            actual_value = $avStatus; ^
+        }; ^
+        ^
+        $body = ConvertTo-Json $packages -Depth 4; ^
+        try { ^
+            [void](Invoke-RestMethod ^
+            -Method Post ^
+            -Uri '%SERVER_URL%/api/validate_check' ^
+            -Body $body ^
+            -ContentType 'application/json; charset=utf-8') ^
+        } catch { ^
+            %YELLOW% '[전송 실패] [%MESSAGE%] API 서버 연결 오류'; ^
+            exit 1; ^
+        };
+
+    if %ERRORLEVEL% EQU 0 (
+        rem call :log_message "알약 백신 상태 검사 성공" "PASS"
+    ) else (
+        rem call :log_message "알약 백신 상태 검사 실패" "FAIL"
+    )
+
+    exit /b
 
 :exit_to_borwser
     powershell -Command ^

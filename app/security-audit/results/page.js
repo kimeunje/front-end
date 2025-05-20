@@ -60,11 +60,11 @@ export default function SecurityAuditStatsDashboard() {
       try {
         // 병렬로 API 요청 보내기
         const [logsResponse, checklistResponse] = await Promise.all([
-          fetch("http://localhost:5001/api/security-audit/logs", {
+          fetch("/api/security-audit/logs", {
             credentials: "include",
           }),
           fetch(
-            "http://localhost:5001/api/security-audit/checklist-items",
+            "/api/security-audit/checklist-items",
             {
               credentials: "include",
             }
