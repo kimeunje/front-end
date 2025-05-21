@@ -3,7 +3,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import "@/app/styles/dashboard.css";
 import PageNavigation from "@/app/components/PageNavigation";
+import AutoRunDownload from "@/app/components/AutoRunDownload";
 
 export default function AutoRunPolicyPage() {
   const pathname = usePathname();
@@ -19,6 +21,18 @@ export default function AutoRunPolicyPage() {
           위험을 초래할 수 있습니다. 악성코드는 자동실행 기능을 이용하여 이동식 미디어를 
           통해 시스템에 침투할 수 있으므로, 자동실행 기능을 제한하는 것이 중요합니다.
         </p>
+      </div>
+
+      <div className="section">
+        <h2 className="section-title">자동 설정 도구</h2>
+        <p>
+          아래 버튼을 클릭하여 이동매체 자동실행 제한 설정 도구를 다운로드하세요. 
+          이 도구는 레지스트리 설정을 자동으로 변경하여 이동매체 자동실행을 안전하게 제한합니다.
+        </p>
+        <div className="setup-actions simple" style={{ marginTop: "15px" }}>
+          <AutoRunDownload />
+        </div>
+
       </div>
 
       <div className="section">

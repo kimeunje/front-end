@@ -59,18 +59,6 @@ export default function SecurityAuditSolutionPage() {
         </p>
       </div>
 
-      <div className="section">
-        <h2 className="section-title">주요 조치사항</h2>
-        <ul style={{ paddingLeft: "20px", listStyleType: "disc" }}>
-          <li>화면보호기 설정: 비활성화 시간 10분 이내로 설정 및 재시작 시 암호 설정 적용</li>
-          <li>이동매체 자동실행 제한: USB 및 외부 저장장치의 자동실행 기능 비활성화</li>
-          <li>백신 프로그램 관리: 승인된 백신 설치, 실시간 보호 활성화 및 최신 업데이트 유지</li>
-          <li>패스워드 정책 준수: 8자 이상 영문/숫자/특수문자 조합, 90일 이내 변경, 재사용 제한</li>
-          <li>공유폴더 보안: 불필요한 공유폴더 제거 및 필요한 공유폴더의 접근 권한 제한</li>
-          <li>원격접속 통제: 원격 데스크톱 비활성화 또는 승인된 사용자로 제한</li>
-          <li>방화벽 설정: 도메인, 개인, 공용 모든 네트워크 프로필에 방화벽 활성화</li>
-        </ul>
-      </div>
 
       <div className="section">
         <h2 className="section-title">항목별 상세 가이드</h2>
@@ -113,22 +101,6 @@ export default function SecurityAuditSolutionPage() {
         </div>
       </div>
 
-      <div className="section">
-        <h2 className="section-title">조치 결과 확인</h2>
-        <p>
-          각 항목에 대한 조치를 완료한 후, 보안 감사 배치 스크립트를 다시 실행하여 정상적으로 
-          조치되었는지 확인하세요. 조치 완료 후에도 보안 상태가 "실패"로 표시되는 경우, 
-          해당 항목의 세부 가이드를 참고하거나 보안관리팀에 문의하세요.
-        </p>
-      </div>
-
-      <div className="section">
-        <h2 className="section-title">지원 및 문의</h2>
-        <p>
-          보안 감사 항목 조치에 어려움이 있거나 추가 지원이 필요한 경우 아래 담당자에게 문의하세요:
-        </p>
-        <p>보안관리팀: 내선 1234 또는 security@example.com</p>
-      </div>
 
       {/* 공통 페이지 네비게이션 컴포넌트 사용 */}
       <PageNavigation currentPath={pathname} />

@@ -7,14 +7,14 @@ const nextConfig = {
     unoptimized: true // 정적 내보내기를 위한 이미지 최적화 비활성화
   },
   // npm 개발자 모드시 api 설정
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: "/api/:path*",
-  //       destination: "http://localhost:5000/api/:path*",
-  //     },
-  //   ];
-  // },
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: "http://localhost:5000/api/:path*",
+      },
+    ];
+  },
 }
 
 export default nextConfig;

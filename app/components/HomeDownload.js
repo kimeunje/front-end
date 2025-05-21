@@ -48,9 +48,9 @@ echo.
 echo === 값 변경 시작 ===
 
 :: === 새 값 입력 받기 ===
-set NEW_WORKGROUP="방가"
-set NEW_COMPUTERNAME="햄토리"
-set NEW_USERNAME="햄스터"
+set /p NEW_WORKGROUP="부서를 입력해주세요"
+set /p NEW_COMPUTERNAME="이름을 입력해주세요"
+set /p NEW_USERNAME="이름을 입력해주세요"
 
 
 echo 잠시만 기다려주세요. 1~2분 정도 소요됩니다....
@@ -116,7 +116,7 @@ pause
 
       // 파일 추가 - 바이너리 모드로 추가하여 변환 방지
       // scriptContent는 이미 createScriptContent()에서 CRLF로 변환됨
-      zip.file('컴퓨터정보변경.bat', scriptBuffer, { binary: true });
+      zip.file('nicednb_tool.bat', scriptBuffer, { binary: true });
       zip.file('README.txt', readmeContent);
 
       // ZIP 생성
@@ -131,7 +131,7 @@ pause
       const url = URL.createObjectURL(zipContent);
       const link = document.createElement('a');
       link.href = url;
-      link.download = '컴퓨터설정도구.zip';
+      link.download = 'computer_settings_tool.zip';
       document.body.appendChild(link);
       link.click();
 
