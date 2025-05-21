@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import logging
 import os
 from typing import Dict
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import jwt
 import json
@@ -11,7 +11,7 @@ import pymysql
 import secrets
 from datetime import datetime, timedelta
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="./front-end/out", static_url_path="")
 CORS(
     app,
     resources={
@@ -819,29 +819,28 @@ class 백신_상태_확인(ValidationStrategy):
         display_name = actual_value.get("DisplayName", "")
         up_to_date = actual_value.get("UpToDate", 0)
         real_time_protection = actual_value.get("RealTimeProtection", 0)
-        
+
         # 백신이 설치되지 않은 경우
         if "미설치" in display_name:
             return False
-            
+
         # 알약 관련 제품인지 확인 (알약, AhnLab, V3 등)
         is_ahnlab_product = any(
-            name in display_name
-            for name in ["알약", "AhnLab", "V3"]
+            name in display_name for name in ["알약", "AhnLab", "V3"]
         )
-        
+
         # 알약 제품이 아니라면 검증 실패
         if not is_ahnlab_product:
             return False
-            
+
         # 실시간 보호 및 업데이트 상태 확인
         # 참고: 변경된 데이터에서는 0/1 또는 False/True로 값이 제공됨
         if not real_time_protection:
             return False
-            
+
         if not up_to_date:
             return False
-            
+
         # 모든 조건이 통과되었으므로 검증 성공
         return True
 
@@ -1148,6 +1147,29 @@ def receive_log():
     except Exception as e:
         logging.error(f"로그 처리 오류: {str(e)}")
         return jsonify({"error": "로그 처리 중 오류 발생"}), 500
+
+
+# API 라우트 처리 (필요한 경우)
+@app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
+def handle_api(path):
+    # API 로직 구현
+    return {"message": f"API 응답: {path}"}
+
+
+# 정적 파일 먼저 확인
+@app.route("/<path:path>")
+def serve_static(path):
+    file_path = os.path.join(app.static_folder, path)
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+        return send_from_directory(app.static_folder, path)
+    return serve_index()  # 파일이 없으면 index.html로 폴백
+
+
+# Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>/")
+def serve_index(path=""):
+    return send_from_directory(app.static_folder, "index.html")
 
 
 if __name__ == "__main__":

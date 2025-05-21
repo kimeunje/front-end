@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import logging
 import os
 from typing import Dict
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import jwt
 import json
@@ -13,7 +13,7 @@ from ldap3 import Server, Connection, ALL
 from datetime import datetime, timedelta
 from email_sender import send_verification_email
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="./front-end/out", static_url_path="")
 CORS(
     app,
     resources={
@@ -889,5 +889,28 @@ def receive_log():
         return jsonify({"error": "로그 처리 중 오류 발생"}), 500
 
 
+# API 라우트 처리 (필요한 경우)
+@app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
+def handle_api(path):
+    # API 로직 구현
+    return {"message": f"API 응답: {path}"}
+
+
+# 정적 파일 먼저 확인
+@app.route("/<path:path>")
+def serve_static(path):
+    file_path = os.path.join(app.static_folder, path)
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+        return send_from_directory(app.static_folder, path)
+    return serve_index()  # 파일이 없으면 index.html로 폴백
+
+
+# Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>/")
+def serve_index(path=""):
+    return send_from_directory(app.static_folder, "index.html")
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
