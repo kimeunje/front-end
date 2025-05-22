@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "./components/context/AuthContext";
 import HomeDownload from "./components/HomeDownload"; // HomeDownload 컴포넌트 임포트
+import ScriptDownload from "./components/ScriptDownload"; // ScriptDownload 컴포넌트 임포트
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -253,6 +254,7 @@ export default function HomePage() {
 
                   <div className="setup-actions simple">
                     <HomeDownload />
+                    <ScriptDownload />
                     <button
                       className="setup-complete-button"
                       onClick={markSetupAsDone}

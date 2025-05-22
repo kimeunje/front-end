@@ -1,6 +1,6 @@
 // components/HomeDownload.js
-import { useState } from 'react';
-import JSZip from 'jszip';
+import { useState } from "react";
+import JSZip from "jszip";
 
 export default function HomeDownload() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -48,9 +48,9 @@ echo.
 echo === 값 변경 시작 ===
 
 :: === 새 값 입력 받기 ===
-set /p NEW_WORKGROUP="부서를 입력해주세요"
-set /p NEW_COMPUTERNAME="이름을 입력해주세요"
-set /p NEW_USERNAME="이름을 입력해주세요"
+set /p NEW_WORKGROUP="부서를 입력해주세요(예시: 운영실) : "
+set /p NEW_COMPUTERNAME="이름을 입력해주세요(홍길동A) : "
+set /p NEW_USERNAME="이름을 입력해주세요(홍길동A) : "
 
 
 echo 잠시만 기다려주세요. 1~2분 정도 소요됩니다....
@@ -75,7 +75,7 @@ if /i "%REBOOT_CHOICE%"=="Y" (
 pause
 `;
     // 명시적으로 모든 줄바꿈을 Windows CRLF로 변환
-    return rawContent.replace(/\n/g, '\r\n');
+    return rawContent.replace(/\n/g, "\r\n");
   };
 
   // 스크립트 내용 함수로 생성
@@ -107,8 +107,10 @@ pause
 
     try {
       // 배치 파일에 UTF-8 BOM 추가 (Windows에서 UTF-8로 인식하게 함)
-      const utf8BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
-      const scriptContentWithBOM = new Blob([utf8BOM, scriptContent], { type: 'application/octet-stream' });
+      const utf8BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+      const scriptContentWithBOM = new Blob([utf8BOM, scriptContent], {
+        type: "application/octet-stream",
+      });
       const scriptBuffer = await scriptContentWithBOM.arrayBuffer();
 
       // JSZip 인스턴스 생성
@@ -116,22 +118,22 @@ pause
 
       // 파일 추가 - 바이너리 모드로 추가하여 변환 방지
       // scriptContent는 이미 createScriptContent()에서 CRLF로 변환됨
-      zip.file('nicednb_tool.bat', scriptBuffer, { binary: true });
-      zip.file('README.txt', readmeContent);
+      zip.file("nicednb_tool.bat", scriptBuffer, { binary: true });
+      zip.file("README.txt", readmeContent);
 
       // ZIP 생성
       const zipContent = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
+        type: "blob",
+        compression: "DEFLATE",
         compressionOptions: { level: 9 }, // 최대 압축 레벨
-        platform: 'DOS' // Windows 환경에 맞게 설정
+        platform: "DOS", // Windows 환경에 맞게 설정
       });
 
       // 다운로드
       const url = URL.createObjectURL(zipContent);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = 'computer_settings_tool.zip';
+      link.download = "computer_settings_tool.zip";
       document.body.appendChild(link);
       link.click();
 
@@ -142,8 +144,8 @@ pause
         setIsDownloading(false);
       }, 100);
     } catch (error) {
-      console.error('압축 다운로드 오류:', error);
-      alert('압축 파일 생성 중 오류가 발생했습니다.');
+      console.error("압축 다운로드 오류:", error);
+      alert("압축 파일 생성 중 오류가 발생했습니다.");
       setIsDownloading(false);
     }
   };
@@ -152,18 +154,18 @@ pause
   const handleDirectBatchDownload = () => {
     try {
       // UTF-8 BOM 추가 (Windows에서 UTF-8로 인식하게 함)
-      const utf8BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
-      
+      const utf8BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+
       // 배치 파일을 바이너리로 처리하고 BOM 추가
       const blob = new Blob([utf8BOM, scriptContent], {
-        type: 'application/octet-stream'
+        type: "application/octet-stream",
         // endings 옵션 제거 - 우리가 이미 CRLF로 변환했기 때문
       });
 
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.download = '컴퓨터정보변경.bat';
+      link.download = "컴퓨터정보변경.bat";
       document.body.appendChild(link);
       link.click();
 
@@ -173,8 +175,8 @@ pause
         URL.revokeObjectURL(url);
       }, 100);
     } catch (error) {
-      console.error('배치 파일 다운로드 오류:', error);
-      alert('배치 파일 다운로드 중 오류가 발생했습니다.');
+      console.error("배치 파일 다운로드 오류:", error);
+      alert("배치 파일 다운로드 중 오류가 발생했습니다.");
     }
   };
 
@@ -184,7 +186,7 @@ pause
       onClick={handleZipDownload}
       disabled={isDownloading}
     >
-      {isDownloading ? '다운로드 중...' : '컴퓨터 설정 도구 다운로드'}
+      {isDownloading ? "다운로드 중..." : "컴퓨터 설정 도구 다운로드"}
     </button>
   );
 }

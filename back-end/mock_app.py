@@ -1,9 +1,10 @@
 # back-end/mock_app.py (ldap_app.py의 테스트 버전)
 from abc import ABC, abstractmethod
+import io
 import logging
 import os
 from typing import Dict
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
 import jwt
 import json
@@ -343,7 +344,6 @@ MOCK_SECURITY_DATA = {
         },
     ],
 }
-
 
 # API 엔드포인트: 사용자별 보안 통계 데이터 조회 (모의)
 # @app.route("/api/security-audit/stats", methods=["GET"])
@@ -886,12 +886,11 @@ def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
+# validate_check 함수도 간단하게 수정 - 이제 항상 UPDATE만 수행
 @app.route("/api/validate_check", methods=["POST"])
 def validate_check():
     """
-    항목 검증을 배치 스크립트에서 바로 실행할 수 있는 API 엔드포인트
-    클라이언트로부터 받은 item_type과 actual_value를 검증하고 결과를 반환
-    같은 날짜에 동일 사용자/항목 조합이 있으면 업데이트, 없으면 새로 추가
+    항목 검증 API - 이제 기존 로그를 업데이트만 함
     """
     data = request.json
     print(data)
@@ -928,11 +927,11 @@ def validate_check():
         user_id = data["user_id"]
         item_id = item_result["item_id"]
         item_name = item_result["item_name"]
-        actual_value = data["actual_value"]  # 이미 JSON 객체
+        actual_value = data["actual_value"]
         notes = data.get("notes", "")
 
         # 검증 로직
-        passed = None  # 기본값
+        passed = None
 
         # 예외 목록에 없는 경우만 검증
         EXCEPTION_ITEM_NAMES = [
@@ -947,26 +946,19 @@ def validate_check():
             "고유 식별번호 처리 제한",
         ]
 
-        print(type(item_name), type(passed), type(actual_value))
-
         if item_name not in EXCEPTION_ITEM_NAMES:
             # 적절한 전략 선택
             strategy = VALIDATION_STRATEGIES.get(item_name, DefaultValidation())
             passed = 1 if strategy.validate(actual_value) else 0
 
             # 검증 결과에 따라 자동으로 notes 생성
-            if notes == "":  # 사용자가 notes를 직접 제공하지 않은 경우에만 자동 생성
+            if notes == "":
                 notes = generate_notes(item_name, passed, actual_value)
 
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
 
-        print(user_id, item_id, actual_value_json, passed, notes)
-
-        # 오늘 날짜의 시작 시간 (00:00:00)을 구합니다
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
-        # 해당 사용자와 항목에 대해 오늘 날짜의 로그가 있는지 확인
+        # 오늘 날짜의 해당 항목 로그를 찾아서 업데이트
         cur.execute(
             """
             SELECT log_id 
@@ -981,7 +973,7 @@ def validate_check():
         existing_log = cur.fetchone()
 
         if existing_log:
-            # 이미 오늘 검사한 기록이 있으면 UPDATE
+            # 기존 로그 업데이트
             cur.execute(
                 """
                 UPDATE audit_log 
@@ -992,7 +984,10 @@ def validate_check():
             )
             log_action = "updated"
         else:
-            # 오늘 처음 검사하는 경우 INSERT
+            # 만약 기존 로그가 없으면 새로 생성 (예외 상황)
+            print(
+                f"[WARNING] 기존 로그가 없어 새로 생성합니다: user_id={user_id}, item_id={item_id}"
+            )
             cur.execute(
                 """
                 INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
@@ -1014,13 +1009,15 @@ def validate_check():
         )
 
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         error_message = str(e)
         print(f"[ERROR 500] {error_message}")
         return jsonify({"status": "failed", "message": error_message}), 500
 
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 def generate_notes(item_name, passed, actual_value):
@@ -1086,12 +1083,13 @@ def generate_notes(item_name, passed, actual_value):
 def authenticate():
     data = request.json
     print(data)
-    # if not data or "username" not in data or "emp_id" not in data:
-    #     return jsonify({"error": "Invalid request"}), 400
+
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+
+        # 사용자 확인
         cur.execute(
             """
             SELECT uid
@@ -1101,9 +1099,8 @@ def authenticate():
             (data["username"]),
         )
         user = cur.fetchone()
-        if user:
-            return jsonify({"user_id": user["uid"]})
-        else:
+
+        if not user:
             return jsonify(
                 {
                     "status": "failed",
@@ -1111,6 +1108,70 @@ def authenticate():
                     "statusCode": 401,
                 }
             )
+
+        user_id = user["uid"]
+
+        # 오늘 날짜의 감사 로그가 이미 있는지 확인
+        cur.execute(
+            """
+            SELECT COUNT(*) as log_count
+            FROM audit_log
+            WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
+            """,
+            (user_id,),
+        )
+
+        existing_logs = cur.fetchone()["log_count"]
+
+        # 오늘 감사 로그가 없으면 모든 체크리스트 항목에 대해 기본 로그 생성
+        if existing_logs == 0:
+            # 모든 체크리스트 항목 조회
+            cur.execute(
+                """
+                SELECT item_id, item_name, category, description
+                FROM checklist_items
+                ORDER BY item_id
+                """
+            )
+
+            checklist_items = cur.fetchall()
+
+            # 각 항목에 대해 기본 감사 로그 생성
+            for item in checklist_items:
+                default_actual_value = json.dumps(
+                    {"status": "pending", "message": "검사 대기 중"}, ensure_ascii=False
+                )
+
+                cur.execute(
+                    """
+                    INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes, checked_at)
+                    VALUES (%s, %s, %s, 0, '검사 대기 중', NOW())
+                    """,
+                    (user_id, item["item_id"], default_actual_value),
+                )
+
+            conn.commit()
+            print(
+                f"사용자 {data['username']} ({user_id})에 대해 {len(checklist_items)}개의 감사 로그를 생성했습니다."
+            )
+        else:
+            print(
+                f"사용자 {data['username']} ({user_id})의 오늘 감사 로그가 이미 존재합니다. ({existing_logs}개)"
+            )
+
+        return jsonify({"user_id": user_id})
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"사용자 검증 오류: {str(e)}")
+        return jsonify(
+            {
+                "status": "failed",
+                "message": "서버 오류가 발생했습니다.",
+                "statusCode": 500,
+            }
+        )
     finally:
         if conn:
             conn.close()
@@ -1148,28 +1209,168 @@ def receive_log():
         logging.error(f"로그 처리 오류: {str(e)}")
         return jsonify({"error": "로그 처리 중 오류 발생"}), 500
 
+        # 메모리에서 파일 생성
+        file_data = io.BytesIO()
+        file_data.write(
+            bat_content.encode("cp949")
+        )  # Windows 배치 파일은 CP949 인코딩 사용
+        file_data.seek(0)
 
-# API 라우트 처리 (필요한 경우)
-@app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
-def handle_api(path):
-    # API 로직 구현
-    return {"message": f"API 응답: {path}"}
+        # 파일 다운로드 응답
+        return send_file(
+            file_data,
+            as_attachment=True,
+            download_name="abbbb.bat",
+            mimetype="application/octet-stream",
+        )
+
+    except Exception as e:
+        app.logger.error(f"BAT 파일 다운로드 오류: {str(e)}")
+        return jsonify({"error": "파일 다운로드 중 오류가 발생했습니다."}), 500
 
 
-# 정적 파일 먼저 확인
+# # API 라우트 처리 (필요한 경우)
+# @app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
+# def handle_api(path):
+#     # API 로직 구현
+#     return {"message": f"API 응답: {path}"}
+
+# # 정적 파일 먼저 확인
+# @app.route("/<path:path>")
+# def serve_static(path):
+#     file_path = os.path.join(app.static_folder, path)
+#     if os.path.exists(file_path) and not os.path.isdir(file_path):
+#         return send_from_directory(app.static_folder, path)
+#     return serve_index()  # 파일이 없으면 index.html로 폴백
+
+# # Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
+# @app.route("/", defaults={"path": ""})
+# @app.route("/<path:path>/")
+# def serve_index(path=""):
+#     return send_from_directory(app.static_folder, "index.html")
+
+# mock_app.py의 라우팅 부분을 완전히 교체
+
+# mock_app.py에서 기존 라우팅 부분을 모두 제거하고 다음으로 교체
+
+import mimetypes
+from werkzeug.exceptions import NotFound
+
+# MIME 타입 설정
+mimetypes.add_type("application/javascript", ".js")
+mimetypes.add_type("text/css", ".css")
+
+
+# 디버깅을 위한 요청 로깅
+@app.before_request
+def log_request():
+    app.logger.info(
+        f"Request: {request.method} {request.path} - User-Agent: {request.headers.get('User-Agent', 'Unknown')}"
+    )
+
+
+# 정적 리소스 처리 (_next, favicon 등)
+@app.route("/_next/<path:path>")
+def serve_next_static(path):
+    """Next.js 정적 리소스 (_next 폴더)"""
+    try:
+        return send_from_directory(os.path.join(app.static_folder, "_next"), path)
+    except NotFound:
+        app.logger.error(f"Static file not found: _next/{path}")
+        return "File not found", 404
+
+
+@app.route("/favicon.ico")
+def favicon():
+    try:
+        return send_from_directory(app.static_folder, "favicon.ico")
+    except:
+        return "", 204
+
+
+# 확장자가 있는 정적 파일 처리
+@app.route("/<path:filename>")
+def serve_static_file(filename):
+    """확장자가 있는 파일들 (css, js, png, etc.)"""
+    # 확장자가 있는 경우만 정적 파일로 처리
+    if "." in filename and not filename.endswith("/"):
+        try:
+            file_path = os.path.join(app.static_folder, filename)
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                return send_from_directory(app.static_folder, filename)
+        except Exception as e:
+            app.logger.error(f"Error serving static file {filename}: {e}")
+
+    # 정적 파일이 아니면 SPA 라우팅으로 처리
+    return serve_spa()
+
+
+# Next.js SPA 라우팅 처리
+def serve_spa():
+    """Next.js SPA 앱 서빙"""
+    try:
+        # 먼저 특정 경로의 HTML 파일이 있는지 확인
+        request_path = request.path.strip("/")
+
+        # 경로별 HTML 파일 확인
+        possible_paths = [
+            f"{request_path}.html",
+            f"{request_path}/index.html",
+            "index.html",
+        ]
+
+        for path in possible_paths:
+            full_path = os.path.join(app.static_folder, path)
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+                app.logger.info(
+                    f"Serving HTML file: {path} for request: {request.path}"
+                )
+                return send_from_directory(app.static_folder, path)
+
+        # 기본 index.html 반환
+        app.logger.info(f"Serving default index.html for request: {request.path}")
+        return send_from_directory(app.static_folder, "index.html")
+
+    except Exception as e:
+        app.logger.error(f"Error serving SPA for {request.path}: {e}")
+        return "Application Error", 500
+
+
+# 루트 경로
+@app.route("/")
+def serve_root():
+    return serve_spa()
+
+
+# 모든 Next.js 라우트 처리
 @app.route("/<path:path>")
-def serve_static(path):
-    file_path = os.path.join(app.static_folder, path)
-    if os.path.exists(file_path) and not os.path.isdir(file_path):
-        return send_from_directory(app.static_folder, path)
-    return serve_index()  # 파일이 없으면 index.html로 폴백
+def serve_spa_routes(path):
+    """모든 Next.js 클라이언트 사이드 라우트"""
+    # API 요청은 이미 위에서 처리됨
+    return serve_spa()
 
 
-# Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>/")
-def serve_index(path=""):
-    return send_from_directory(app.static_folder, "index.html")
+# 404 에러 핸들러
+@app.errorhandler(404)
+def not_found_handler(error):
+    """404 에러 처리"""
+    # API 요청인 경우
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "API endpoint not found", "path": request.path}), 404
+
+    # 그 외의 경우 Next.js 앱으로 라우팅
+    app.logger.info(f"404 handler redirecting to SPA for: {request.path}")
+    return serve_spa()
+
+
+# 500 에러 핸들러
+@app.errorhandler(500)
+def internal_error_handler(error):
+    """500 에러 처리"""
+    app.logger.error(f"Internal server error: {error}")
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Internal server error"}), 500
+    return serve_spa()
 
 
 if __name__ == "__main__":

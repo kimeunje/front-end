@@ -249,8 +249,6 @@ DB_CONFIG = {
 def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
 
-
-# API 엔드포인트: 사용자별 보안 통계 데이터 조회
 @app.route("/api/security-audit/stats", methods=["GET"])
 def get_security_stats():
     token = request.cookies.get("auth_token")
@@ -264,7 +262,7 @@ def get_security_stats():
 
         # 토큰에서 사용자 가져오기
         user_name = payload.get("username")
-
+        print(user_name)
         if not user_name:
             return jsonify({"message": "사용자 정보를 찾을 수 없습니다."}), 401
 
@@ -274,24 +272,21 @@ def get_security_stats():
             # 사용자 ID 가져오기
             cursor.execute(
                 """
-                SELECT id
-                FROM users2
-                WHERE uid = %s
+                SELECT uid
+                FROM users
+                WHERE user_id = %s
                 """,
-                (user_name,),
+                (user_name, ),
             )
 
             user = cursor.fetchone()
-
-            user_id = user["id"]
+            user_id = user["uid"]
 
             # 총 체크리스트 항목 수 조회
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT COUNT(*) as total_items
                 FROM checklist_items
-                """
-            )
+                """)
             total_items_result = cursor.fetchone()
             total_checks = total_items_result["total_items"]
 
@@ -302,7 +297,7 @@ def get_security_stats():
                 FROM audit_log
                 WHERE user_id = %s
                 """,
-                (user_id,),
+                (user_id, ),
             )
             last_audit_result = cursor.fetchone()
             last_audit_date = last_audit_result["last_audit_date"]
@@ -314,7 +309,7 @@ def get_security_stats():
                 FROM audit_log
                 WHERE passed = 1 AND user_id = %s
                 """,
-                (user_id,),
+                (user_id, ),
             )
             passed_checks_result = cursor.fetchone()
             completed_checks = passed_checks_result["completed_checks"]
@@ -326,7 +321,7 @@ def get_security_stats():
                 FROM audit_log
                 WHERE passed = 0 AND user_id = %s
                 """,
-                (user_id,),
+                (user_id, ),
             )
             failed_checks_result = cursor.fetchone()
             critical_issues = failed_checks_result["critical_issues"]
@@ -351,6 +346,26 @@ def get_security_stats():
         return jsonify({"error": str(e)}), 500
 
 
+# API 엔드포인트: 사용자별 보안 감사 로그 목록 조회 (모의)
+# @app.route("/api/security-audit/logs", methods=["GET"])
+# def get_audit_logs():
+#     token = request.cookies.get('auth_token')
+
+#     if not token:
+#         return jsonify({'message': '인증 토큰이 필요합니다.'}), 401
+
+#     try:
+#         # 토큰 검증 (간단히)
+#         jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+
+#         # 모의 데이터 반환
+#         return jsonify(MOCK_SECURITY_DATA["logs"])
+
+#     except Exception as e:
+#         print(f"Error in get_audit_logs: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
+
+
 # API 엔드포인트: 사용자별 보안 감사 로그 목록 조회 (수정됨)
 @app.route("/api/security-audit/logs", methods=["GET"])
 def get_audit_logs():
@@ -365,7 +380,7 @@ def get_audit_logs():
 
         # 토큰에서 사용자 가져오기
         user_name = payload.get("username")
-
+        print(user_name)
         if not user_name:
             return jsonify({"message": "사용자 정보를 찾을 수 없습니다."}), 401
 
@@ -375,16 +390,15 @@ def get_audit_logs():
             # 사용자 ID 가져오기
             cursor.execute(
                 """
-                SELECT id
-                FROM users2
-                WHERE uid = %s
+                SELECT uid
+                FROM users
+                WHERE user_id = %s
                 """,
-                (user_name,),
+                (user_name, ),
             )
 
             user = cursor.fetchone()
-
-            user_id = user["id"]
+            user_id = user["uid"]
 
             # 특정 사용자의 로그만 날짜 역순으로 가져오기
             cursor.execute(
@@ -394,7 +408,7 @@ def get_audit_logs():
                 WHERE user_id = %s
                 ORDER BY checked_at DESC
             """,
-                (user_id,),
+                (user_id, ),
             )
 
             logs = cursor.fetchall()
@@ -414,17 +428,15 @@ def get_audit_logs():
             else:
                 checked_at = log["checked_at"]
 
-            result.append(
-                {
-                    "log_id": log["log_id"],
-                    "user_id": log["user_id"],
-                    "item_id": log["item_id"],
-                    "actual_value": actual_value,
-                    "passed": log["passed"],
-                    "notes": log["notes"],
-                    "checked_at": checked_at,
-                }
-            )
+            result.append({
+                "log_id": log["log_id"],
+                "user_id": log["user_id"],
+                "item_id": log["item_id"],
+                "actual_value": actual_value,
+                "passed": log["passed"],
+                "notes": log["notes"],
+                "checked_at": checked_at,
+            })
 
         return jsonify(result)
 
@@ -433,20 +445,28 @@ def get_audit_logs():
         return jsonify({"error": str(e)}), 500
 
 
-# API 엔드포인트: 사용자별 체크리스트 항목 조회
+# API 엔드포인트: 사용자별 체크리스트 항목 조회 (모의)
+# @app.route("/api/security-audit/checklist-items", methods=["GET"])
+# def get_checklist_items():
+#     try:
+#         # 모의 데이터 반환
+#         return jsonify(MOCK_SECURITY_DATA["checklist_items"])
+
+
+#     except Exception as e:
+#         print(f"Error in get_checklist_items: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
 @app.route("/api/security-audit/checklist-items", methods=["GET"])
 def get_checklist_items():
     try:
         conn = get_db_connection()
         with conn.cursor() as cursor:
             # 모든 체크리스트 항목 가져오기 (사용자별 필터링이 필요없는 경우)
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT item_id, category, item_name as name, description
                 FROM checklist_items
                 ORDER BY item_id ASC
-            """
-            )
+            """)
 
             items = cursor.fetchall()
         conn.close()
@@ -458,10 +478,12 @@ def get_checklist_items():
         return jsonify({"error": str(e)}), 500
 
 
+# log.py에 추가할 새로운 API 엔드포인트
+
 # 사용자 환경 설정
 DB_CONFIG = {
     "host": "localhost",
-    "port": 33060,
+    "port": 3306,
     "user": "root",
     "password": "dnb123!!",
     "db": "patch_management",
@@ -486,11 +508,9 @@ class DefaultValidation(ValidationStrategy):
 class 화면보호기_사용(ValidationStrategy):
 
     def validate(self, actual_value: dict) -> bool:
-        return (
-            str(actual_value.get("screenSaverEnabled")) == "1"
-            and int(actual_value.get("screenSaverTime", 0)) >= 600
-            and str(actual_value.get("screenSaverSecure")) == "1"
-        )
+        return (str(actual_value.get("screenSaverEnabled")) == "1"
+                and int(actual_value.get("screenSaverTime", 0)) >= 600
+                and str(actual_value.get("screenSaverSecure")) == "1")
 
 
 class 사용자_계정명의_적정성(ValidationStrategy):
@@ -644,13 +664,74 @@ class OS_패치_확인(ValidationStrategy):
         current_date = datetime.now()
 
         for entry in self.supported_versions:
-            if (
-                entry["version"] in windows_version
-                and build_number == entry["build_number"]
-            ):
+            if (entry["version"] in windows_version
+                    and build_number == entry["build_number"]):
                 return current_date <= entry["end_date"]
 
         # If no match is found, return False
+        return False
+
+
+class 방화벽_활성화_확인(ValidationStrategy):
+
+    def validate(self, actual_value: dict) -> bool:
+        # 필수 방화벽 프로필 목록
+        required_profiles = ["Domain", "Private", "Public"]
+
+        # 모든 필수 프로필이 존재하고 활성화(값이 1)되어 있는지 확인
+        for profile in required_profiles:
+            # 프로필이 없거나 비활성화(0)되어 있으면 검증 실패
+            if profile not in actual_value or actual_value.get(profile) != 1:
+                return False
+
+        return True
+
+
+class 백신_상태_확인(ValidationStrategy):
+
+    def validate(self, actual_value: dict) -> bool:
+        # 백신 정보 직접 확인
+        display_name = actual_value.get("DisplayName", "")
+        up_to_date = actual_value.get("UpToDate", 0)
+        real_time_protection = actual_value.get("RealTimeProtection", 0)
+
+        # 백신이 설치되지 않은 경우
+        if "미설치" in display_name:
+            return False
+
+        # 알약 관련 제품인지 확인 (알약, AhnLab, V3 등)
+        is_ahnlab_product = any(name in display_name for name in ["알약", "AhnLab", "V3"])
+
+        # 알약 제품이 아니라면 검증 실패
+        if not is_ahnlab_product:
+            return False
+
+        # 실시간 보호 및 업데이트 상태 확인
+        # 참고: 변경된 데이터에서는 0/1 또는 False/True로 값이 제공됨
+        if not real_time_protection:
+            return False
+
+        if not up_to_date:
+            return False
+
+        # 모든 조건이 통과되었으므로 검증 성공
+        return True
+
+
+class 이동매체_자동실행_제한(ValidationStrategy):
+
+    def validate(self, actual_value: dict) -> bool:
+        # NoDriveTypeAutoRun 값이 255 또는 95인 경우만 통과
+        value = actual_value.get("Value")
+
+        # 값이 문자열로 전달될 경우 정수로 변환 시도
+        if isinstance(value, str) and value.isdigit():
+            value = int(value)
+
+        # 값이 정수인지 확인하고 검증
+        if isinstance(value, int):
+            return value >= 255 or value == 95
+
         return False
 
 
@@ -664,10 +745,13 @@ VALIDATION_STRATEGIES: Dict[str, ValidationStrategy] = {
     "동일 패스워드 설정 제한": 동일_패스워드_설정_제한(),
     "공유폴더 확인": 공유폴더_확인(),
     "불분명 프린터 확인": 불분명_프린터_확인(),
+    "방화벽 활성화 확인": 방화벽_활성화_확인(),
     "원격데스크톱 제한": 원격데스크톱_제한(),
     "소프트웨어 패치 관리": DefaultValidation(),
     "불특정 소프트웨어 확인": 불특정_소프트웨어_확인(),
+    "이동매체 자동실행 제한": 이동매체_자동실행_제한(),
     "OS 패치 확인": OS_패치_확인(),
+    "백신 상태 확인": 백신_상태_확인(),
 }
 
 
@@ -675,20 +759,16 @@ def get_db_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
+# validate_check 함수도 간단하게 수정 - 이제 항상 UPDATE만 수행
 @app.route("/api/validate_check", methods=["POST"])
 def validate_check():
     """
-    항목 검증을 배치 스크립트에서 바로 실행할 수 있는 API 엔드포인트
-    클라이언트로부터 받은 item_type과 actual_value를 검증하고 결과를 반환
+    항목 검증 API - 이제 기존 로그를 업데이트만 함
     """
     data = request.json
     print(data)
-    if (
-        not data
-        or "user_id" not in data
-        or "item_type" not in data
-        or "actual_value" not in data
-    ):
+    if (not data or "user_id" not in data or "item_type" not in data
+            or "actual_value" not in data):
         error_message = "필수 필드가 누락되었습니다 (user_id, item_type, actual_value)"
         print(f"[ERROR] {error_message}")
         return jsonify({"error": error_message}), 400
@@ -704,7 +784,7 @@ def validate_check():
             FROM checklist_items
             WHERE item_name LIKE %s
             """,
-            (data["item_type"],),
+            (data["item_type"], ),
         )
         item_result = cur.fetchone()
 
@@ -716,11 +796,11 @@ def validate_check():
         user_id = data["user_id"]
         item_id = item_result["item_id"]
         item_name = item_result["item_name"]
-        actual_value = data["actual_value"]  # 이미 JSON 객체
+        actual_value = data["actual_value"]
         notes = data.get("notes", "")
 
         # 검증 로직
-        passed = None  # 기본값
+        passed = None
 
         # 예외 목록에 없는 경우만 검증
         EXCEPTION_ITEM_NAMES = [
@@ -735,49 +815,74 @@ def validate_check():
             "고유 식별번호 처리 제한",
         ]
 
-        print(type(item_name), type(passed), type(actual_value))
-
         if item_name not in EXCEPTION_ITEM_NAMES:
             # 적절한 전략 선택
             strategy = VALIDATION_STRATEGIES.get(item_name, DefaultValidation())
             passed = 1 if strategy.validate(actual_value) else 0
 
             # 검증 결과에 따라 자동으로 notes 생성
-            if notes == "":  # 사용자가 notes를 직접 제공하지 않은 경우에만 자동 생성
+            if notes == "":
                 notes = generate_notes(item_name, passed, actual_value)
 
         # JSON 문자열로 변환
         actual_value_json = json.dumps(actual_value, ensure_ascii=False)
 
-        print(user_id, item_id, actual_value_json, passed, notes)
-
-        # 로그 저장 또는 업데이트
+        # 오늘 날짜의 해당 항목 로그를 찾아서 업데이트
         cur.execute(
             """
-            INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
-            VALUES (%s, %s, %s, %s, %s)
+            SELECT log_id 
+            FROM audit_log 
+            WHERE user_id = %s AND item_id = %s AND DATE(checked_at) = DATE(NOW())
+            ORDER BY checked_at DESC
+            LIMIT 1
             """,
-            (user_id, item_id, actual_value_json, passed, notes),
+            (user_id, item_id),
         )
+
+        existing_log = cur.fetchone()
+
+        if existing_log:
+            # 기존 로그 업데이트
+            cur.execute(
+                """
+                UPDATE audit_log 
+                SET actual_value = %s, passed = %s, notes = %s, checked_at = NOW()
+                WHERE log_id = %s
+                """,
+                (actual_value_json, passed, notes, existing_log["log_id"]),
+            )
+            log_action = "updated"
+        else:
+            # 만약 기존 로그가 없으면 새로 생성 (예외 상황)
+            print(f"[WARNING] 기존 로그가 없어 새로 생성합니다: user_id={user_id}, item_id={item_id}")
+            cur.execute(
+                """
+                INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (user_id, item_id, actual_value_json, passed, notes),
+            )
+            log_action = "created"
 
         conn.commit()
-        return jsonify(
-            {
-                "status": "success",
-                "item_id": item_id,
-                "item_name": item_name,
-                "passed": passed,
-            }
-        )
+        return jsonify({
+            "status": "success",
+            "item_id": item_id,
+            "item_name": item_name,
+            "passed": passed,
+            "log_action": log_action,
+        })
 
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         error_message = str(e)
         print(f"[ERROR 500] {error_message}")
         return jsonify({"status": "failed", "message": error_message}), 500
 
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 def generate_notes(item_name, passed, actual_value):
@@ -794,14 +899,28 @@ def generate_notes(item_name, passed, actual_value):
             "패스워드 복잡도 설정": "암호 복잡도가 적절하게 설정되어 있습니다.",
             "패스워드 주기적 변경": "암호 변경 주기가 적절하게 설정되어 있습니다.",
             "동일 패스워드 설정 제한": "동일 암호 사용 제한이 적절하게 설정되어 있습니다.",
+            "방화벽 활성화 확인": "모든 방화벽 프로필(Domain, Private, Public)이 정상적으로 활성화되어 있습니다.",
             "공유폴더 확인": "불필요한 공유 폴더가 없습니다.",
             "불분명 프린터 확인": "인가되지 않은 프린터가 없습니다.",
+            "": "알약 백신이 정상적으로 설치되어 있으며, 실시간 보호 및 최신 업데이트가 적용되어 있습니다.",
             "원격데스크톱 제한": "원격 데스크톱이 적절하게 제한되어 있습니다.",
+            "이동매체 자동실행 제한": "이동식 미디어 자동실행이 올바르게 제한되어 있습니다.",
             "불특정 소프트웨어 확인": "모든 소프트웨어가 최신 버전으로 업데이트되어 있습니다.",
             "OS 패치 확인": "운영체제가 최신 상태로 업데이트되어 있습니다.",
         }
         return notes_success.get(item_name, "검사 항목이 정상적으로 확인되었습니다.")
     else:
+        # 비활성화된 프로필 목록 생성
+        if item_name == "방화벽 활성화 확인":
+            disabled_profiles = []
+            for profile in ["Domain", "Private", "Public"]:
+                if profile not in actual_value or actual_value.get(profile) != 1:
+                    disabled_profiles.append(profile)
+
+            if disabled_profiles:
+                disabled_str = ", ".join(disabled_profiles)
+                return f"일부 방화벽 프로필({disabled_str})이 비활성화되어 있습니다. 모든 프로필(Domain, Private, Public)을 활성화해주세요."
+
         # 실패한 경우의 메시지
         notes_failure = {
             "화면보호기 사용": f"화면 보호기 설정이 정책에 맞지 않습니다. 현재 설정: 활성화={actual_value.get('screenSaverEnabled')}, 시간={actual_value.get('screenSaverTime')}초, 암호설정={actual_value.get('screenSaverSecure')}. 화면 보호기 활성화 및 10분(600초) 이내 설정, 재시작 시 암호 필요 옵션을 켜주세요.",
@@ -812,45 +931,102 @@ def generate_notes(item_name, passed, actual_value):
             "패스워드 주기적 변경": f"암호 변경 주기가 정책(90일 이내)에 맞지 않습니다. 현재 설정: {actual_value.get('maximumPasswordAge')}일. 90일 이내로 설정해주세요.",
             "동일 패스워드 설정 제한": f"동일 암호 사용 제한이 정책(5회 이상)에 맞지 않습니다. 현재 설정: {actual_value.get('passwordHistorySize')}회. 5회 이상으로 설정해주세요.",
             "공유폴더 확인": "불필요한 공유 폴더가 있습니다. 필요하지 않은 공유 폴더를 제거해주세요.",
+            "방화벽 활성화 확인": "일부 방화벽 프로필이 비활성화되어 있습니다. 모든 프로필(Domain, Private, Public)을 활성화해주세요.",
             "불분명 프린터 확인": "인가되지 않은 프린터가 있습니다. 불필요한 프린터를 제거해주세요.",
             "원격데스크톱 제한": "원격 데스크톱이 활성화되어 있습니다. 보안을 위해 비활성화해주세요.",
+            "이동매체 자동실행 제한": f"이동식 미디어 자동실행이 제한되어 있지 않습니다. 현재 값: {actual_value.get('Value', '없음')}. 레지스트리 설정(NoDriveTypeAutoRun)을 255 또는 95로 설정하여 자동실행을 제한해주세요.",
             "불특정 소프트웨어 확인": "일부 소프트웨어가 최신 버전이 아닙니다. 소프트웨어를 업데이트해주세요.",
+            "백신 상태 확인": "알약 백신이 정상적으로 설치되어 있지 않거나, 실시간 보호가 비활성화되어 있거나, 업데이트가 최신 상태가 아닙니다. 알약 백신을 설치하고 실시간 보호를 활성화한 후 최신 업데이트를 적용해주세요.",
             "OS 패치 확인": f"운영체제({actual_value.get('windowsVersion')}, 빌드:{actual_value.get('windowsBuildNumber')})가 최신 상태가 아닙니다. 윈도우 업데이트를 실행하여 최신 상태로 유지해주세요.",
         }
-        return notes_failure.get(
-            item_name, "검사 항목이 정책에 맞지 않습니다. 확인이 필요합니다."
-        )
+        return notes_failure.get(item_name, "검사 항목이 정책에 맞지 않습니다. 확인이 필요합니다.")
 
 
 @app.route("/api/authenticate", methods=["POST"])
 def authenticate():
     data = request.json
     print(data)
-    # if not data or "username" not in data or "emp_id" not in data:
-    #     return jsonify({"error": "Invalid request"}), 400
+
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+
+        # 사용자 확인
         cur.execute(
             """
-            SELECT user_id
+            SELECT uid
             FROM users
             WHERE username = %s
             """,
             (data["username"]),
         )
         user = cur.fetchone()
-        if user:
-            return jsonify({"user_id": user["user_id"]})
-        else:
-            return jsonify(
-                {
-                    "status": "failed",
-                    "message": "사용자 검증에 실패했습니다. 운영실에 문의해주세요.",
-                    "statusCode": 401,
-                }
+
+        if not user:
+            return jsonify({
+                "status": "failed",
+                "message": "사용자 검증에 실패했습니다. 운영실에 문의해주세요.",
+                "statusCode": 401,
+            })
+
+        user_id = user["uid"]
+
+        # 오늘 날짜의 감사 로그가 이미 있는지 확인
+        cur.execute(
+            """
+            SELECT COUNT(*) as log_count
+            FROM audit_log
+            WHERE user_id = %s AND DATE(checked_at) = DATE(NOW())
+            """, (user_id, ))
+
+        existing_logs = cur.fetchone()["log_count"]
+
+        # 오늘 감사 로그가 없으면 모든 체크리스트 항목에 대해 기본 로그 생성
+        if existing_logs == 0:
+            # 모든 체크리스트 항목 조회
+            cur.execute("""
+                SELECT item_id, item_name, category, description
+                FROM checklist_items
+                ORDER BY item_id
+                """)
+
+            checklist_items = cur.fetchall()
+
+            # 각 항목에 대해 기본 감사 로그 생성
+            for item in checklist_items:
+                default_actual_value = json.dumps(
+                    {
+                        "status": "pending",
+                        "message": "검사 대기 중"
+                    }, ensure_ascii=False)
+
+                cur.execute(
+                    """
+                    INSERT INTO audit_log (user_id, item_id, actual_value, passed, notes, checked_at)
+                    VALUES (%s, %s, %s, 0, '검사 대기 중', NOW())
+                    """, (user_id, item["item_id"], default_actual_value))
+
+            conn.commit()
+            print(
+                f"사용자 {data['username']} ({user_id})에 대해 {len(checklist_items)}개의 감사 로그를 생성했습니다."
             )
+        else:
+            print(
+                f"사용자 {data['username']} ({user_id})의 오늘 감사 로그가 이미 존재합니다. ({existing_logs}개)"
+            )
+
+        return jsonify({"user_id": user_id})
+
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"사용자 검증 오류: {str(e)}")
+        return jsonify({
+            "status": "failed",
+            "message": "서버 오류가 발생했습니다.",
+            "statusCode": 500,
+        })
     finally:
         if conn:
             conn.close()
@@ -888,28 +1064,159 @@ def receive_log():
         logging.error(f"로그 처리 오류: {str(e)}")
         return jsonify({"error": "로그 처리 중 오류 발생"}), 500
 
+        # 메모리에서 파일 생성
+        file_data = io.BytesIO()
+        file_data.write(bat_content.encode('cp949'))  # Windows 배치 파일은 CP949 인코딩 사용
+        file_data.seek(0)
 
-# API 라우트 처리 (필요한 경우)
-@app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
-def handle_api(path):
-    # API 로직 구현
-    return {"message": f"API 응답: {path}"}
+        # 파일 다운로드 응답
+        return send_file(file_data, as_attachment=True, download_name='abbbb.bat',
+                         mimetype='application/octet-stream')
 
-
-# 정적 파일 먼저 확인
-@app.route("/<path:path>")
-def serve_static(path):
-    file_path = os.path.join(app.static_folder, path)
-    if os.path.exists(file_path) and not os.path.isdir(file_path):
-        return send_from_directory(app.static_folder, path)
-    return serve_index()  # 파일이 없으면 index.html로 폴백
+    except Exception as e:
+        app.logger.error(f"BAT 파일 다운로드 오류: {str(e)}")
+        return jsonify({"error": "파일 다운로드 중 오류가 발생했습니다."}), 500
 
 
-# Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>/")
-def serve_index(path=""):
-    return send_from_directory(app.static_folder, "index.html")
+# # API 라우트 처리 (필요한 경우)
+# @app.route("/api/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
+# def handle_api(path):
+#     # API 로직 구현
+#     return {"message": f"API 응답: {path}"}
+
+# # 정적 파일 먼저 확인
+# @app.route("/<path:path>")
+# def serve_static(path):
+#     file_path = os.path.join(app.static_folder, path)
+#     if os.path.exists(file_path) and not os.path.isdir(file_path):
+#         return send_from_directory(app.static_folder, path)
+#     return serve_index()  # 파일이 없으면 index.html로 폴백
+
+# # Next.js 페이지 라우트를 위한 폴백 - 모든 클라이언트 사이드 라우팅 지원
+# @app.route("/", defaults={"path": ""})
+# @app.route("/<path:path>/")
+# def serve_index(path=""):
+#     return send_from_directory(app.static_folder, "index.html")
+
+# mock_app.py의 라우팅 부분을 완전히 교체
+
+# mock_app.py에서 기존 라우팅 부분을 모두 제거하고 다음으로 교체
+
+import mimetypes
+from werkzeug.exceptions import NotFound
+
+# MIME 타입 설정
+mimetypes.add_type('application/javascript', '.js')
+mimetypes.add_type('text/css', '.css')
+
+
+# 디버깅을 위한 요청 로깅
+@app.before_request
+def log_request():
+    app.logger.info(
+        f"Request: {request.method} {request.path} - User-Agent: {request.headers.get('User-Agent', 'Unknown')}"
+    )
+
+
+# 정적 리소스 처리 (_next, favicon 등)
+@app.route('/_next/<path:path>')
+def serve_next_static(path):
+    """Next.js 정적 리소스 (_next 폴더)"""
+    try:
+        return send_from_directory(os.path.join(app.static_folder, '_next'), path)
+    except NotFound:
+        app.logger.error(f"Static file not found: _next/{path}")
+        return "File not found", 404
+
+
+@app.route('/favicon.ico')
+def favicon():
+    try:
+        return send_from_directory(app.static_folder, 'favicon.ico')
+    except:
+        return "", 204
+
+
+# 확장자가 있는 정적 파일 처리
+@app.route('/<path:filename>')
+def serve_static_file(filename):
+    """확장자가 있는 파일들 (css, js, png, etc.)"""
+    # 확장자가 있는 경우만 정적 파일로 처리
+    if '.' in filename and not filename.endswith('/'):
+        try:
+            file_path = os.path.join(app.static_folder, filename)
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                return send_from_directory(app.static_folder, filename)
+        except Exception as e:
+            app.logger.error(f"Error serving static file {filename}: {e}")
+
+    # 정적 파일이 아니면 SPA 라우팅으로 처리
+    return serve_spa()
+
+
+# Next.js SPA 라우팅 처리
+def serve_spa():
+    """Next.js SPA 앱 서빙"""
+    try:
+        # 먼저 특정 경로의 HTML 파일이 있는지 확인
+        request_path = request.path.strip('/')
+
+        # 경로별 HTML 파일 확인
+        possible_paths = [
+            f"{request_path}.html", f"{request_path}/index.html", "index.html"
+        ]
+
+        for path in possible_paths:
+            full_path = os.path.join(app.static_folder, path)
+            if os.path.exists(full_path) and os.path.isfile(full_path):
+                app.logger.info(
+                    f"Serving HTML file: {path} for request: {request.path}")
+                return send_from_directory(app.static_folder, path)
+
+        # 기본 index.html 반환
+        app.logger.info(f"Serving default index.html for request: {request.path}")
+        return send_from_directory(app.static_folder, 'index.html')
+
+    except Exception as e:
+        app.logger.error(f"Error serving SPA for {request.path}: {e}")
+        return "Application Error", 500
+
+
+# 루트 경로
+@app.route('/')
+def serve_root():
+    return serve_spa()
+
+
+# 모든 Next.js 라우트 처리
+@app.route('/<path:path>')
+def serve_spa_routes(path):
+    """모든 Next.js 클라이언트 사이드 라우트"""
+    # API 요청은 이미 위에서 처리됨
+    return serve_spa()
+
+
+# 404 에러 핸들러
+@app.errorhandler(404)
+def not_found_handler(error):
+    """404 에러 처리"""
+    # API 요청인 경우
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "API endpoint not found", "path": request.path}), 404
+
+    # 그 외의 경우 Next.js 앱으로 라우팅
+    app.logger.info(f"404 handler redirecting to SPA for: {request.path}")
+    return serve_spa()
+
+
+# 500 에러 핸들러
+@app.errorhandler(500)
+def internal_error_handler(error):
+    """500 에러 처리"""
+    app.logger.error(f"Internal server error: {error}")
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Internal server error"}), 500
+    return serve_spa()
 
 
 if __name__ == "__main__":
